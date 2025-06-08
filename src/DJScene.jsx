@@ -3,8 +3,8 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { useGLTF, OrbitControls } from '@react-three/drei'
 import { useSpring, a } from '@react-spring/three'
 
-function VinylPlayerModel() {
-  const { nodes } = useGLTF('/DJ.glb')
+function DJModel() {
+  const { nodes } = useGLTF('/DJ1.glb')
   console.log(nodes)
   const [isPressed, setPressed] = useState(false)
   const vinylRef = useRef()
@@ -51,21 +51,20 @@ function VinylPlayerModel() {
       <primitive
         ref={vinylRef}
         object={nodes.VinylLeft}
-        position={[0, 0.5 , 0]} // just above the base
+        position={[-1.025, 0.35 , -0.39]} 
       />
     </group>
   )
 }
 
-export default function VinylPlayerScene() {
+export default function DJScene() {
   return (
     <Canvas 
       camera={{ position: [0, 3, 8], fov: 45 }}
-      style={{ background: 'white' }} 
-    >
+      style={{ background: 'white' }} >
       <ambientLight intensity={0} />
       <directionalLight position={[5, 5, 5]} intensity={5} />
-      <VinylPlayerModel />
+      <DJModel />
       <OrbitControls />
     </Canvas>
   )
