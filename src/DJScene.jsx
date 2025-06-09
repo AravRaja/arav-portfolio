@@ -88,11 +88,10 @@ function DJModel() {
     window.addEventListener('keydown', handleKeyDown);
     return () => {
         window.removeEventListener('keydown', handleKeyDown);
-        window.removeEventListener('keyup', handleKeyUp); // Added cleanup for keyup
+        window.removeEventListener('keyup', handleKeyUp); 
     };
-  }, [ANIMATION.DOWN, ANIMATION.IDLE, ANIMATION.RUNNING, ANIMATION.UP]); // Added dependencies
+  }, []);
 
-  // --- End of Added Code ---
 
   // Animation state variables
   const START_TONEBAR_LEFT_Z = -0.08;
@@ -121,13 +120,6 @@ function DJModel() {
         vinylLeftRef.current &&
         vinylRightRef.current
       ) {
-        // Debug: log UP phase values
-        console.log('UP Phase:', {
-          zLeft: tonebarLeftRef.current.rotation.z.toFixed(3),
-          zRight: tonebarRightRef.current.rotation.z.toFixed(3),
-          yLeft: tonebarLeftRef.current.rotation.y.toFixed(3),
-          yRight: tonebarRightRef.current.rotation.y.toFixed(3),
-        });
 
         // 1. Animate both tonebars' Z rotation up to their respective HIGH_TONEBAR_*_Z
         const leftZDone = tonebarLeftRef.current.rotation.z >= HIGH_TONEBAR_LEFT_Z;
@@ -136,7 +128,7 @@ function DJModel() {
         // Only run initial Z-up phase if Y hasn’t moved yet
         const inInitialPhase = tonebarLeftRef.current.rotation.y <= START_TONEBAR_LEFT_Y;
         if (inInitialPhase && (!leftZDone || !rightZDone)) {
-          console.log('Stage 1 UP:', { inInitialPhase, leftZDone, rightZDone });
+          
           tonebarLeftRef.current.rotation.z = Math.min(
             tonebarLeftRef.current.rotation.z + TONEBAR_SPEED,
             HIGH_TONEBAR_LEFT_Z
