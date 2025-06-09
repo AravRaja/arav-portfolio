@@ -79,7 +79,7 @@ function DJModel() {
       if (e.code === 'Space') {
         setAnimation((prev) => {
           if (prev === ANIMATION.UP) return ANIMATION.DOWN;
-          if (prev == ANIMATION.RUNNING) return ANIMATION.RUNNING_ACTIVATED;
+          if (prev === ANIMATION.RUNNING) return ANIMATION.RUNNING_ACTIVATED;
             return prev;
           });
         }
