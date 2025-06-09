@@ -74,7 +74,7 @@ function DJModel() {
           return prev;
         });
       }
-    }; // Semicolon was missing here
+    };
     const handleKeyUp = (e) => {
       if (e.code === 'Space') {
         setAnimation((prev) => {
