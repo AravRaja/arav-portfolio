@@ -30,20 +30,9 @@ function AnimatedButton({ node, name, active, setActive }) {
   );
 }
 
-function DJModel() {
+function DJModel({animation, setAnimation, ANIMATION}) {
   const { nodes } = useGLTF('/DJ1.glb');
   const [activeButton, setActiveButton] = useState(null);
-
-  const ANIMATION = {
-        IDLE: 0,
-        UP: 1,
-        DOWN: 2,
-        RUNNING: 3,
-        RUNNING_ACTIVATED: 4,
-  };
-
-  const [animation, setAnimation] = useState(ANIMATION.IDLE)
-
   const tonebarLeftRef = useRef();
   const tonebarRightRef = useRef();
   const vinylLeftRef = useRef();
@@ -64,33 +53,7 @@ function DJModel() {
     }
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.code === 'Space') {
-        setAnimation((prev) => {
-          if (prev === ANIMATION.IDLE) return ANIMATION.UP;
-          if (prev === ANIMATION.RUNNING_ACTIVATED) return ANIMATION.DOWN;
-          if (prev === ANIMATION.DOWN) return ANIMATION.UP;
-          return prev;
-        });
-      }
-    };
-    const handleKeyUp = (e) => {
-      if (e.code === 'Space') {
-        setAnimation((prev) => {
-          if (prev === ANIMATION.UP) return ANIMATION.DOWN;
-          if (prev === ANIMATION.RUNNING) return ANIMATION.RUNNING_ACTIVATED;
-            return prev;
-          });
-        }
-      };
-    window.addEventListener('keyup', handleKeyUp);
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-        window.removeEventListener('keydown', handleKeyDown);
-        window.removeEventListener('keyup', handleKeyUp); 
-    };
-  }, []);
+  
 
 
   // Animation state variables
@@ -281,16 +244,16 @@ function DJModel() {
     </group>
   );
 }
-
-export default function DJScene() {
+export default function DJScene({ animation, setAnimation, ANIMATION }) {
   return (
-    <Canvas
-      camera={{ position: [0, 3, 8], fov: 60 }}
-      style={{ background: 'white' }}
-    >
+    <Canvas camera={{ position: [0, 3, 8], fov: 60 }} className="djscene-canvas">
       <ambientLight intensity={0} />
       <directionalLight position={[5, 5, 5]} intensity={5} />
-      <DJModel />
+      <DJModel
+        animation={animation}
+        setAnimation={setAnimation}
+        ANIMATION={ANIMATION}
+      />
       <OrbitControls />
     </Canvas>
   );

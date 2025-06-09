@@ -17,6 +17,13 @@ export default function Welcome() {
         <div className="label-block">[BASED IN LONDON]</div>
         <div className="label-block">[AGE 20]</div>
       </div>
+      <div className="project-info">
+        <img src="/music-suggestion.png" alt="Music Suggestion Illustration" style={{ width: '100%', borderRadius: '6px', marginBottom: '10px' }} />
+        Music Recommendations with <strong>Interaction-Aware Neural Nets</strong>
+        <div style={{ marginTop: '8px' }}>
+          <a href="#projects" className="see-more-link">See more →</a>
+        </div>
+      </div>
     </section>
   );
 }

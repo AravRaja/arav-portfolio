@@ -4,11 +4,21 @@ import Header from './Header'
 import Welcome from './Welcome'
 import "./App.css"
 export default function App() {
+  const ANIMATION = {
+          IDLE: 0,
+          UP: 1,
+          DOWN: 2,
+          RUNNING: 3,
+          RUNNING_ACTIVATED: 4,
+    };
+  
+  const [animation, setAnimation] = useState(ANIMATION.IDLE)
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
       <Header />
       <Welcome />
-      <DJScene />
+      <KeyboardInteractions animation={animation} setAnimation={setAnimation} ANIMATION={ANIMATION} />
+      <DJScene animation={animation} setAnimation={setAnimation} ANIMATION={ANIMATION} />
     </div>
   )
 }
