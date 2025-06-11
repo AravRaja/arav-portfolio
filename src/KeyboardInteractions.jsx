@@ -1,8 +1,15 @@
 
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import './KeyboardInteraction.css'
 
 export default function KeyboardInteractions({ animation, setAnimation, ANIMATION }) {
+  const SPACE = {
+    UP: 'space-up',
+    DOWN: 'space-down',
+    UP_PERMANENT: 'space-down-perm'
+  };
+  const [spaceButtonState, setSpaceButtonState] = useState(SPACE.UP);
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.code === 'Space') {
@@ -10,6 +17,10 @@ export default function KeyboardInteractions({ animation, setAnimation, ANIMATIO
           if (prev === ANIMATION.IDLE) return ANIMATION.UP;
           if (prev === ANIMATION.RUNNING_ACTIVATED) return ANIMATION.DOWN;
           if (prev === ANIMATION.DOWN) return ANIMATION.UP;
+          return prev;
+        });
+        setSpaceButtonState((prev) => {
+          if (prev === SPACE.UP) return SPACE.DOWN;
           return prev;
         });
       }
@@ -20,6 +31,10 @@ export default function KeyboardInteractions({ animation, setAnimation, ANIMATIO
         setAnimation((prev) => {
           if (prev === ANIMATION.UP) return ANIMATION.DOWN;
           if (prev === ANIMATION.RUNNING) return ANIMATION.RUNNING_ACTIVATED;
+          return prev;
+        });
+        setSpaceButtonState((prev) => {
+          if (prev === SPACE.DOWN) return SPACE.UP;
           return prev;
         });
       }
@@ -34,5 +49,12 @@ export default function KeyboardInteractions({ animation, setAnimation, ANIMATIO
     };
   }, [setAnimation, ANIMATION]);
 
-  return null;
+  return (
+    <div className = 'space-full' >
+      <div className={`${spaceButtonState}`}>Press Space</div>
+      <div className='space-base'></div>
+    </div>
+
+
+  );
 }
