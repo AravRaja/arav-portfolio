@@ -3,4 +3,34 @@
 html, body {
   height: 100%;
   font-family: 'IBM Plex Mono', monospace;
+  overflow: hidden;
+  
 }
+
+ 
+
+.djscene-canvas {
+  background-color: #ffffff;
+  background-image: radial-gradient(#13121279 1px, transparent 1px);
+  background-size: 10px 10px;
+  position: fixed;
+  
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  overflow: hidden; 
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
+.djscene-canvas::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(to bottom, rgba(255,255,255,1), rgba(255,255,255,0.8));
+  pointer-events: none;
+
+}
+

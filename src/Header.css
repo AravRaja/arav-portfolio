@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   height: 55px;
-  background-color: white;
+  background-color: rgba(255,255,255,0.6);
   border-bottom: 1px solid #959595;
   display: flex;
   align-items: center;

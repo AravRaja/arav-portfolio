@@ -3,6 +3,9 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF, OrbitControls } from '@react-three/drei';
 import { useSpring, a } from '@react-spring/three';
 
+
+import { Perf } from 'r3f-perf';
+
 function AnimatedButton({ node, name, active, setActive }) {
   const isPressed = active === name;
 
@@ -30,89 +33,121 @@ function AnimatedButton({ node, name, active, setActive }) {
   );
 }
 
-function DJModel() {
+function DJModel({animation, setAnimation, ANIMATION}) {
   const { nodes } = useGLTF('/DJ1.glb');
   const [activeButton, setActiveButton] = useState(null);
-
-  const ANIMATION = {
-        IDLE: 0,
-        UP: 1,
-        DOWN: 2,
-        RUNNING: 3,
-        RUNNING_ACTIVATED: 4,
-  };
-
-  const [animation, setAnimation] = useState(ANIMATION.IDLE)
-
   const tonebarLeftRef = useRef();
   const tonebarRightRef = useRef();
   const vinylLeftRef = useRef();
   const vinylRightRef = useRef();
 
-  // Ensure initial rotations are set to 0
+  // === CONFIGURABLE CONSTANTS ===
+
+  const fpsRef = useRef(60);
+
+  useEffect(() => {
+    let frames = 0;
+    let last = performance.now();
+    let rafId;
+
+    const loop = () => {
+      const now = performance.now();
+      frames++;
+      if (now - last >= 1000) {
+        fpsRef.current = frames;
+        frames = 0;
+        last = now;
+      }
+      rafId = requestAnimationFrame(loop);
+    };
+
+    rafId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafId); 
+  }, []);
+
+  const fps = fpsRef.current;
+  const scale = 1; 
+  const TONEBAR_SPEED = 0.01*scale;
+  const LEFT_RIGHT_SF = 3.3; 
+  const MAX_VINYL_SPEED_PER_SEC = 0.4*60*scale;
+  
+  const VINYL_ACCEL_BASE = 8 * scale; 
+  const VINYL_ACCEL_SCALE = 20 * scale;  
+  const VINYL_DECEL_BASE = 6 * scale;
+  const VINYL_DECEL_SCALE = 20 * scale; 
+
+  // Starting positions (change to adjust initial pose)
+  const START_TONEBAR_LEFT_Z = -0.08;
+  const START_TONEBAR_LEFT_Y = -0.59;
+  const START_TONEBAR_RIGHT_Z = 0.24;
+  const START_TONEBAR_RIGHT_Y = -0.02;
+
+  // Animation targets (change to adjust how far tonebars move)
+  const HIGH_TONEBAR_Y = 0.59;       // How high the tonebars lift (Y axis)
+  const HIGH_TONEBAR_Z = 0.18;       // How far the tonebars swing (Z axis)
+  const FINAL_TONEBAR_Z = 0.08;      // Final Z offset after animation
+
+  // === DERIVED CONSTANTS (do not change unless you know what you're doing) ===
+  const HIGH_TONEBAR_LEFT_Z = HIGH_TONEBAR_Z + START_TONEBAR_LEFT_Z;
+  const HIGH_TONEBAR_RIGHT_Z = START_TONEBAR_RIGHT_Z - (HIGH_TONEBAR_Z * LEFT_RIGHT_SF);
+  const HIGH_TONEBAR_LEFT_Y = HIGH_TONEBAR_Y + START_TONEBAR_LEFT_Y;
+  const HIGH_TONEBAR_RIGHT_Y = START_TONEBAR_RIGHT_Y - (HIGH_TONEBAR_Z * 3.07);
+  const FINAL_TONEBAR_LEFT_Z = FINAL_TONEBAR_Z + START_TONEBAR_LEFT_Z;
+  const FINAL_TONEBAR_RIGHT_Z = START_TONEBAR_RIGHT_Z - (FINAL_TONEBAR_Z * LEFT_RIGHT_SF);
+  const rotationSpeedRef = useRef(0);
+
+  // Debug timing refs
+  const upStartTimeRef = useRef(null);
+  const upToRunningLoggedRef = useRef(false);
+  const downStartTimeRef = useRef(null);
+  const downToIdleLoggedRef = useRef(false);
+
+  useEffect(() => {
+    const now = performance.now();
+
+    if (animation === ANIMATION.UP) {
+      upStartTimeRef.current = now;
+      upToRunningLoggedRef.current = false;
+    } else if (
+      animation === ANIMATION.RUNNING &&
+      upStartTimeRef.current !== null &&
+      !upToRunningLoggedRef.current
+    ) {
+      console.log('UP → RUNNING duration (ms):', now - upStartTimeRef.current);
+      upToRunningLoggedRef.current = true;
+    }
+
+    if (animation === ANIMATION.DOWN) {
+      downStartTimeRef.current = now;
+      downToIdleLoggedRef.current = false;
+    } else if (
+      animation === ANIMATION.IDLE &&
+      downStartTimeRef.current !== null &&
+      !downToIdleLoggedRef.current
+    ) {
+      console.log('DOWN → IDLE duration (ms):', now - downStartTimeRef.current);
+      downToIdleLoggedRef.current = true;
+    }
+  }, [animation]);
+
   useEffect(() => {
     if (tonebarLeftRef.current) {
-      tonebarLeftRef.current.rotation.z = -0.08;
-      tonebarLeftRef.current.rotation.y = -0.59;
+      tonebarLeftRef.current.rotation.z = START_TONEBAR_LEFT_Z;
+      tonebarLeftRef.current.rotation.y = START_TONEBAR_LEFT_Y;
     }
-    if (tonebarRightRef.current){
-        tonebarRightRef.current.rotation.z = 0.24;
-        tonebarRightRef.current.rotation.y = -0.02;
+    if (tonebarRightRef.current) {
+      tonebarRightRef.current.rotation.z = START_TONEBAR_RIGHT_Z;
+      tonebarRightRef.current.rotation.y = START_TONEBAR_RIGHT_Y;
     }
     if (vinylLeftRef.current) {
       vinylLeftRef.current.rotation.y = 0;
     }
-  }, []);
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.code === 'Space') {
-        setAnimation((prev) => {
-          if (prev === ANIMATION.IDLE) return ANIMATION.UP;
-          if (prev === ANIMATION.RUNNING_ACTIVATED) return ANIMATION.DOWN;
-          if (prev === ANIMATION.DOWN) return ANIMATION.UP;
-          return prev;
-        });
-      }
-    };
-    const handleKeyUp = (e) => {
-      if (e.code === 'Space') {
-        setAnimation((prev) => {
-          if (prev === ANIMATION.UP) return ANIMATION.DOWN;
-          if (prev === ANIMATION.RUNNING) return ANIMATION.RUNNING_ACTIVATED;
-            return prev;
-          });
-        }
-      };
-    window.addEventListener('keyup', handleKeyUp);
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-        window.removeEventListener('keydown', handleKeyDown);
-        window.removeEventListener('keyup', handleKeyUp); 
-    };
+    // Reset rotationSpeedRef on mount
+    rotationSpeedRef.current = 0;
   }, []);
 
 
-  // Animation state variables
-  const START_TONEBAR_LEFT_Z = -0.08;
-  const START_TONEBAR_LEFT_Y =  -0.59;
-  const START_TONEBAR_RIGHT_Z = 0.24;
-  const START_TONEBAR_RIGHT_Y = -0.02
-  const HIGH_TONEBAR_Y = 0.59; 
-  const HIGH_TONEBAR_Z = 0.18; 
-  const FINAL_TONEBAR_Z = 0.08;
-  const LEFT_RIGHT_SF = 3.3;
-  const TONEBAR_SPEED = 0.01;
-  const HIGH_TONEBAR_LEFT_Z = HIGH_TONEBAR_Z + START_TONEBAR_LEFT_Z; 
-  const HIGH_TONEBAR_RIGHT_Z = (START_TONEBAR_RIGHT_Z - ((HIGH_TONEBAR_Z)*LEFT_RIGHT_SF));
-  const HIGH_TONEBAR_LEFT_Y = HIGH_TONEBAR_Y + START_TONEBAR_LEFT_Y;
-  const HIGH_TONEBAR_RIGHT_Y = START_TONEBAR_RIGHT_Y  - ((HIGH_TONEBAR_Z)*  3.07);
-  const FINAL_TONEBAR_LEFT_Z = FINAL_TONEBAR_Z + START_TONEBAR_LEFT_Z;  
-  const FINAL_TONEBAR_RIGHT_Z =  START_TONEBAR_RIGHT_Z - (FINAL_TONEBAR_Z * LEFT_RIGHT_SF);
-  const MAX_VINYL_SPEED = 0.25; 
- 
-  const [rotationSpeed, setRotationSpeed] = useState(0); 
-  useFrame(() => {
+  useFrame((_, delta) => {
     if (animation === ANIMATION.UP) { 
       if (
         tonebarLeftRef.current &&
@@ -130,11 +165,11 @@ function DJModel() {
         if (inInitialPhase && (!leftZDone || !rightZDone)) {
           
           tonebarLeftRef.current.rotation.z = Math.min(
-            tonebarLeftRef.current.rotation.z + TONEBAR_SPEED,
+            tonebarLeftRef.current.rotation.z + TONEBAR_SPEED * delta * 60,
             HIGH_TONEBAR_LEFT_Z
           );
           tonebarRightRef.current.rotation.z = Math.max(
-            tonebarRightRef.current.rotation.z - (TONEBAR_SPEED * LEFT_RIGHT_SF),
+            tonebarRightRef.current.rotation.z - (TONEBAR_SPEED * LEFT_RIGHT_SF * delta * 60),
             HIGH_TONEBAR_RIGHT_Z
           );
         }
@@ -145,11 +180,11 @@ function DJModel() {
 
           if (!leftYDone || !rightYDone) {
             tonebarLeftRef.current.rotation.y = Math.min(
-              tonebarLeftRef.current.rotation.y + TONEBAR_SPEED,
+              tonebarLeftRef.current.rotation.y + TONEBAR_SPEED * delta * 60,
               HIGH_TONEBAR_LEFT_Y
             );
             tonebarRightRef.current.rotation.y = Math.max(
-              tonebarRightRef.current.rotation.y - TONEBAR_SPEED,
+              tonebarRightRef.current.rotation.y - TONEBAR_SPEED * delta * 60,
               HIGH_TONEBAR_RIGHT_Y
             );
           }
@@ -160,22 +195,21 @@ function DJModel() {
 
             if (!leftFinalZDone || !rightFinalZDone) {
               tonebarLeftRef.current.rotation.z = Math.max(
-                tonebarLeftRef.current.rotation.z - TONEBAR_SPEED,
+                tonebarLeftRef.current.rotation.z - TONEBAR_SPEED * delta * 60,
                 FINAL_TONEBAR_LEFT_Z
               );
               tonebarRightRef.current.rotation.z = Math.min(
-                tonebarRightRef.current.rotation.z + (TONEBAR_SPEED * LEFT_RIGHT_SF),
+                tonebarRightRef.current.rotation.z + (TONEBAR_SPEED * LEFT_RIGHT_SF * delta * 60),
                 FINAL_TONEBAR_RIGHT_Z
               );
             }
-            // 4. Spin up the vinyls
-            else if (rotationSpeed < MAX_VINYL_SPEED) {
-              setRotationSpeed((speed) => {
-                const accel = 0.0001 + 0.002 * (speed / MAX_VINYL_SPEED); // ease-in
-                return Math.min(speed + accel, MAX_VINYL_SPEED);
-              });
-              vinylLeftRef.current.rotation.y += rotationSpeed;
-              vinylRightRef.current.rotation.y += rotationSpeed;
+            // 4. Spin up the vinyls 
+            else if (rotationSpeedRef.current < MAX_VINYL_SPEED_PER_SEC) {
+              const speed_per_sec = rotationSpeedRef.current;
+              const accel_per_sec = (VINYL_ACCEL_BASE + VINYL_ACCEL_SCALE * (speed_per_sec / MAX_VINYL_SPEED_PER_SEC)); // ease-in
+              rotationSpeedRef.current = Math.min(speed_per_sec + accel_per_sec*delta, MAX_VINYL_SPEED_PER_SEC);
+              vinylLeftRef.current.rotation.y += rotationSpeedRef.current*delta; 
+              vinylRightRef.current.rotation.y += rotationSpeedRef.current*delta;
             }
             // 5. When all is done, set to RUNNING
             else {
@@ -186,20 +220,19 @@ function DJModel() {
       }
     } else if (animation === ANIMATION.DOWN) {
       if (
-        tonebarLeftRef.current &&
+        tonebarLeftRef.current && 
         tonebarRightRef.current &&
         vinylLeftRef.current &&
         vinylRightRef.current
       ) {
         // 1. Slow down the vinyls
-        if (rotationSpeed > 0) {
-          setRotationSpeed((speed) => {
-            const decel = 0.0001 + 0.002 * (speed / MAX_VINYL_SPEED); // ease-out
-            const next = Math.max(speed - decel, 0);
-            vinylLeftRef.current.rotation.y += next;
-            vinylRightRef.current.rotation.y += next;
-            return next;
-          });
+        if (rotationSpeedRef.current > 0) {
+          const speed_per_sec = rotationSpeedRef.current;
+          const decel_per_sec = (VINYL_DECEL_BASE + VINYL_DECEL_SCALE * (speed_per_sec / MAX_VINYL_SPEED_PER_SEC)); // ease-out
+          const next = Math.max(speed_per_sec - decel_per_sec*delta, 0);
+          rotationSpeedRef.current = next;
+          vinylLeftRef.current.rotation.y += next*delta;
+          vinylRightRef.current.rotation.y += next*delta;
         }
         // 2. Reset both tonebars' Y rotation to START_TONEBAR_*_Y
         else {
@@ -208,11 +241,11 @@ function DJModel() {
 
           if (!leftYResetDone || !rightYResetDone) {
             tonebarLeftRef.current.rotation.y = Math.max(
-              tonebarLeftRef.current.rotation.y - TONEBAR_SPEED,
+              tonebarLeftRef.current.rotation.y - TONEBAR_SPEED * delta * 60,
               START_TONEBAR_LEFT_Y
             );
             tonebarRightRef.current.rotation.y = Math.min(
-              tonebarRightRef.current.rotation.y + TONEBAR_SPEED,
+              tonebarRightRef.current.rotation.y + TONEBAR_SPEED * delta * 60,
               START_TONEBAR_RIGHT_Y
             );
           }
@@ -223,11 +256,11 @@ function DJModel() {
 
             if (!leftZResetDone || !rightZResetDone) {
               tonebarLeftRef.current.rotation.z = Math.max(
-                tonebarLeftRef.current.rotation.z - TONEBAR_SPEED,
+                tonebarLeftRef.current.rotation.z - TONEBAR_SPEED * delta * 60,
                 START_TONEBAR_LEFT_Z
               );
               tonebarRightRef.current.rotation.z = Math.min(
-                tonebarRightRef.current.rotation.z + (TONEBAR_SPEED * LEFT_RIGHT_SF),
+                tonebarRightRef.current.rotation.z + (TONEBAR_SPEED * LEFT_RIGHT_SF * delta * 60),
                 START_TONEBAR_RIGHT_Z
               );
             }
@@ -240,8 +273,8 @@ function DJModel() {
       }
     } else if (animation === ANIMATION.RUNNING || animation === ANIMATION.RUNNING_ACTIVATED) {
       if (vinylLeftRef.current && vinylRightRef.current) {
-        vinylLeftRef.current.rotation.y += MAX_VINYL_SPEED;
-        vinylRightRef.current.rotation.y += MAX_VINYL_SPEED;
+        vinylLeftRef.current.rotation.y += MAX_VINYL_SPEED_PER_SEC * delta;
+        vinylRightRef.current.rotation.y += MAX_VINYL_SPEED_PER_SEC * delta;
       }
     }
   });
@@ -282,15 +315,18 @@ function DJModel() {
   );
 }
 
-export default function DJScene() {
+
+
+export default function DJScene({ animation, setAnimation, ANIMATION }) {
   return (
-    <Canvas
-      camera={{ position: [0, 3, 8], fov: 60 }}
-      style={{ background: 'white' }}
-    >
+    <Canvas camera={{ position: [0, 3, 8], fov: 60 }} className="djscene-canvas" >
       <ambientLight intensity={0} />
       <directionalLight position={[5, 5, 5]} intensity={5} />
-      <DJModel />
+      <DJModel
+        animation={animation}
+        setAnimation={setAnimation}
+        ANIMATION={ANIMATION}
+      />
       <OrbitControls />
     </Canvas>
   );
