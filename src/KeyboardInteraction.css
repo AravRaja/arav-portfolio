@@ -25,8 +25,7 @@
 
 /* The moving rectangle (the key itself) */
 .space-up,
-.space-down,
-.space-down-perm {
+.space-down {
   width: 300px;
   height: 40px;
   background: #fff;
@@ -50,21 +49,19 @@
 .space-up {
   bottom: 40px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  cursor: pointer;
+  pointer-events: auto;
+  z-index: 1;
   
   
 }
 
 /* Pressed down position */
-.space-down,
-.space-down-perm {
+.space-down{
   bottom: 30px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.10);
-}
-/* Ensure Press Space element is on top and can receive clicks */
-.space-up,
-.space-down,
-.space-down-perm {
   cursor: pointer;
   pointer-events: auto;
   z-index: 1;
 }
+/* Ensure Press Space element is on top and can receive clicks */
