@@ -42,6 +42,25 @@ function DJModel({animation, setAnimation, ANIMATION}) {
   const vinylRightRef = useRef();
   const modelGroupRef = useRef();
 
+  // Responsive model scale state
+  const [modelScale, setModelScale] = useState(1);
+
+  useEffect(() => {
+    function updateScale() {
+      const width = window.innerWidth;
+      if (width < 600) {
+        setModelScale(0.8);
+      } else if (width < 900) {
+        setModelScale(1);
+      } else {
+        setModelScale(1.4);
+      }
+    }
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, []);
+
   // Mouse state for interactive rotation
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
 
@@ -294,22 +313,32 @@ function DJModel({animation, setAnimation, ANIMATION}) {
       }
     }
     if (modelGroupRef.current) {
-      const t = state.clock.getElapsedTime();
-      const X_TILT = 0.6;
-      const mouseX = (mouse.x - 0.5) * 2;
-      const mouseY = (mouse.y - 0.5) * 2;
-      const wobbleY = Math.sin(t * 0.7) * 0.33;
-      const wobbleX = Math.cos(t * 0.7) * 0.23;
-      const interactiveY = mouseX * 0.85;
-      const interactiveX = -mouseY * 0.65;
-      modelGroupRef.current.rotation.y = wobbleY * 0.7 + interactiveY * 0.3;
-      modelGroupRef.current.rotation.x = X_TILT + wobbleX * 0.7 + interactiveX * 0.3;
-      modelGroupRef.current.rotation.z = 0;
+      if (animation === ANIMATION.IDLE) {
+        const t = state.clock.getElapsedTime();
+        const X_TILT = 0.8;
+        const mouseX = (mouse.x - 0.5) * 2;
+        const mouseY = (mouse.y - 0.5) * 2;
+        const wobbleY = Math.sin(t * 0.7) * 0.33;
+        const wobbleX = Math.cos(t * 0.7) * 0.4;
+        const interactiveY = mouseX * 0.85;
+        const interactiveX = -mouseY * 0.65;
+        modelGroupRef.current.rotation.y = wobbleY * 0.7 + interactiveY * 0.3;
+        modelGroupRef.current.rotation.x = X_TILT + wobbleX * 0.7 + interactiveX * 0.3;
+        modelGroupRef.current.rotation.z = 0;
+      } else {
+        // For all non-IDLE animations, smoothly lerp rotation to [0, 0, 0]
+        const lerp = (a, b, t) => a + (b - a) * t;
+        const rot = modelGroupRef.current.rotation;
+        const factor = 0.01;
+        rot.x = lerp(rot.x, 1, factor);
+        rot.y = lerp(rot.y, 0, factor);
+        rot.z = lerp(rot.z, 0, factor);
+      }
     }
   });
 
   return (
-    <group ref={modelGroupRef}>
+    <group ref={modelGroupRef} scale={[modelScale, modelScale, modelScale]} position={[0, 0.5, 0]}>
       {/* Base of the DJ deck */}
       <primitive object={nodes.Base} />
 

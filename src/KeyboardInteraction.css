@@ -15,7 +15,7 @@
 .space-full {
   position: fixed;
   left: 50%;
-  bottom: 40px;
+  bottom: 0rem;
   transform: translateX(-50%);
   width: var(--space-full-width);
   height: var(--space-full-height);
@@ -50,6 +50,7 @@ svg#space-base {
 
 /* The moving rectangle (the key itself) */
 .space-up,
+.space-down-active,
 .space-down {
   width: var(--space-key-width);
   height: var(--space-key-height);
@@ -82,10 +83,11 @@ svg#space-base {
 /* Default (up) position */
 .space-up {
   bottom: 36px;
-}
+} 
  
 /* Pressed down position */
-.space-down {
+.space-down-active,
+.space-down { 
   bottom: 28px;
 }
 
@@ -93,10 +95,12 @@ svg#space-base {
 svg#rectangle.space-up #stroke-top,
 svg#rectangle.space-up #stroke-bottom {
   stroke-dashoffset: 460;
-  transition: stroke-dashoffset 3.2s cubic-bezier(0, 0, 1.22, 1);
+  transition: stroke-dashoffset 2.9s cubic-bezier(0, 0, 1, 1);
 }
 
 /* Stroke dashoffset for down state + glow */
+svg#rectangle.space-down-active #stroke-top,
+svg#rectangle.space-down-active #stroke-bottom,
 svg#rectangle.space-down #stroke-top,
 svg#rectangle.space-down #stroke-bottom {
   stroke-dashoffset: 0;
@@ -114,3 +118,10 @@ svg#rectangle.space-down #stroke-bottom {
   stroke-linejoin: round;
   opacity: 1;
 }
+
+/* Activated state: orange text and strong glow */
+svg#rectangle.space-down-active text {
+  fill: rgb(255, 0, 0);
+}
+
+

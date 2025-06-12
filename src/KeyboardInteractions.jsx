@@ -7,14 +7,18 @@ export default function KeyboardInteractions({ animation, setAnimation, ANIMATIO
   const SPACE = {
     UP: 'space-up',
     DOWN: 'space-down',
+    DOWN_ACTIVATED: 'space-down-active',
   };
 
   const getSpaceButtonState = () => {
+    
     if (
-      animation === ANIMATION.UP ||
       animation === ANIMATION.RUNNING ||
       animation === ANIMATION.RUNNING_ACTIVATED
     ) {
+      return SPACE.DOWN_ACTIVATED;
+    }
+    if (animation === ANIMATION.UP) {
       return SPACE.DOWN;
     }
     return SPACE.UP;
@@ -38,9 +42,6 @@ export default function KeyboardInteractions({ animation, setAnimation, ANIMATIO
 
   // Handles both keyboard and mouse press down
   const handlePressDown = () => { 
-    if (!isPressed.current){
-      console.log("hii");
-    }
     playClick();
     isPressed.current = true;
     setAnimation((prev) => {
@@ -123,13 +124,14 @@ M 4 25 Q 4 45 26 45 H 376 Q 396 45 396 25"
           d="M 4 25 Q 4 45 26 45 H 376 Q 396 45 396 25"
         />
         <text
+          className = "space-label"
           x="50%"
           y="50%" 
           dominantBaseline="middle"
           textAnchor="middle"
           style={{ userSelect: 'none', pointerEvents: 'none' }}
         >
-          Press Space
+          HOLD SPACE
         </text>
       </svg>
       <svg
