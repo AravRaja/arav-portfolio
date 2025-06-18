@@ -15,7 +15,7 @@ export default function App() {
   
   const [animation, setAnimation] = useState(ANIMATION.IDLE)
   return (
-    <div style={{ width: '100vw', height: '100vh' }}>
+    <div style={{ width: '100dvw', height: '100dvh' }}>
       <Header />
       <Welcome />
       <KeyboardInteractions animation={animation} setAnimation={setAnimation} ANIMATION={ANIMATION} />

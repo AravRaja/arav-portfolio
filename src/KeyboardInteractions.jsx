@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import './KeyboardInteraction.css'
 
 const CLICK_SOUND = '/click.mp3';
+const HOUSE_SOUND = '/house.mp3';
 
 export default function KeyboardInteractions({ animation, setAnimation, ANIMATION }) {
   const SPACE = {
@@ -28,15 +29,24 @@ export default function KeyboardInteractions({ animation, setAnimation, ANIMATIO
   const isPressed = useRef(false);
 
   const clickAudio = useRef(null);
+  const houseAudio = useRef(null);
 
   useEffect(() => {
     clickAudio.current = new window.Audio(CLICK_SOUND);
+    houseAudio.current = new window.Audio(HOUSE_SOUND);
   }, []);
 
   const playClick = () => {
     if (clickAudio.current) {
       clickAudio.current.currentTime = 0;
       clickAudio.current.play();
+    }
+  };
+
+  const playHouse = () => {
+    if (houseAudio.current) {
+      houseAudio.current.currentTime = 0;
+      houseAudio.current.play ();
     }
   };
 
@@ -99,6 +109,12 @@ export default function KeyboardInteractions({ animation, setAnimation, ANIMATIO
       window.removeEventListener('touchend', handlePressUp);
     };
   }, [setAnimation, ANIMATION]);
+
+  useEffect(() => {
+    if (animation === ANIMATION.RUNNING_ACTIVATED) {
+      playHouse();
+    }
+  }, [animation, ANIMATION]);
 
   return (
     <div className = 'space-full' >
