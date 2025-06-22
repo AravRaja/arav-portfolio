@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import './KeyboardInteraction.css'
 
 const CLICK_SOUND = '/click.mp3';
-const HOUSE_SOUND = '/house.mp3';
 
 export default function KeyboardInteractions({ animation, setAnimation, ANIMATION }) {
   const SPACE = {
@@ -27,13 +26,12 @@ export default function KeyboardInteractions({ animation, setAnimation, ANIMATIO
 
   // Track if button is currently pressed
   const isPressed = useRef(false);
+  let lastTouchTime = 0;
 
   const clickAudio = useRef(null);
-  const houseAudio = useRef(null);
 
   useEffect(() => {
     clickAudio.current = new window.Audio(CLICK_SOUND);
-    houseAudio.current = new window.Audio(HOUSE_SOUND);
   }, []);
 
   const playClick = () => {
@@ -43,15 +41,18 @@ export default function KeyboardInteractions({ animation, setAnimation, ANIMATIO
     }
   };
 
-  const playHouse = () => {
-    if (houseAudio.current) {
-      houseAudio.current.currentTime = 0;
-      houseAudio.current.play ();
-    }
-  };
 
   // Handles both keyboard and mouse press down
-  const handlePressDown = () => { 
+  const handlePressDown = (e) => {
+    // Skip mouse events right after touch events
+    if (e.type === 'mousedown' && Date.now() - lastTouchTime < 500) {
+      return;
+    }
+
+    if (e.type === 'touchstart') {
+      lastTouchTime = Date.now();
+    }
+
     playClick();
     isPressed.current = true;
     setAnimation((prev) => {
@@ -110,19 +111,14 @@ export default function KeyboardInteractions({ animation, setAnimation, ANIMATIO
     };
   }, [setAnimation, ANIMATION]);
 
-  useEffect(() => {
-    if (animation === ANIMATION.RUNNING_ACTIVATED) {
-      playHouse();
-    }
-  }, [animation, ANIMATION]);
 
   return (
     <div className = 'space-full' >
       <svg
         id="rectangle"
         className={getSpaceButtonState()}
-        onMouseDown={handlePressDown}
-        onTouchStart={handlePressDown}
+        onMouseDown={(e) => handlePressDown(e)}
+        onTouchStart={(e) => handlePressDown(e)}
         viewBox="0 0 400 50"
         xmlns="http://www.w3.org/2000/svg"
       >
