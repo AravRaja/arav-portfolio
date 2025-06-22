@@ -26,6 +26,7 @@ export default function KeyboardInteractions({ animation, setAnimation, ANIMATIO
 
   // Track if button is currently pressed
   const isPressed = useRef(false);
+  let lastTouchTime = 0;
 
   const clickAudio = useRef(null);
 
@@ -40,8 +41,18 @@ export default function KeyboardInteractions({ animation, setAnimation, ANIMATIO
     }
   };
 
+
   // Handles both keyboard and mouse press down
-  const handlePressDown = () => { 
+  const handlePressDown = (e) => {
+    // Skip mouse events right after touch events
+    if (e.type === 'mousedown' && Date.now() - lastTouchTime < 500) {
+      return;
+    }
+
+    if (e.type === 'touchstart') {
+      lastTouchTime = Date.now();
+    }
+
     playClick();
     isPressed.current = true;
     setAnimation((prev) => {
@@ -100,13 +111,14 @@ export default function KeyboardInteractions({ animation, setAnimation, ANIMATIO
     };
   }, [setAnimation, ANIMATION]);
 
+
   return (
     <div className = 'space-full' >
       <svg
         id="rectangle"
         className={getSpaceButtonState()}
-        onMouseDown={handlePressDown}
-        onTouchStart={handlePressDown}
+        onMouseDown={(e) => handlePressDown(e)}
+        onTouchStart={(e) => handlePressDown(e)}
         viewBox="0 0 400 50"
         xmlns="http://www.w3.org/2000/svg"
       >

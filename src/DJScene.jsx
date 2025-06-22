@@ -4,8 +4,6 @@ import { useGLTF, OrbitControls } from '@react-three/drei';
 import { useSpring, a } from '@react-spring/three';
 
 
-import { Perf } from 'r3f-perf';
-
 function AnimatedButton({ node, name, active, setActive }) {
   const isPressed = active === name;
 
@@ -42,18 +40,26 @@ function DJModel({animation, setAnimation, ANIMATION}) {
   const vinylRightRef = useRef();
   const modelGroupRef = useRef();
 
-  // Responsive model scale state
+  // Responsive model scale and position state
   const [modelScale, setModelScale] = useState(1);
+  const [modelPosition, setModelPosition] = useState([0, 0.5, 0]);
 
   useEffect(() => {
     function updateScale() {
       const width = window.innerWidth;
+      const height = window.innerHeight;
       if (width < 600) {
         setModelScale(0.8);
       } else if (width < 900) {
         setModelScale(1);
       } else {
         setModelScale(1.4);
+      }
+
+      if (height < 700) {
+        setModelPosition([0, 0.8, 0]);
+      } else {
+        setModelPosition([0, 0.5, 0]);
       }
     }
     updateScale();
@@ -338,7 +344,7 @@ function DJModel({animation, setAnimation, ANIMATION}) {
   });
 
   return (
-    <group ref={modelGroupRef} scale={[modelScale, modelScale, modelScale]} position={[0, 0.5, 0]}>
+    <group ref={modelGroupRef} scale={[modelScale, modelScale, modelScale]} position={modelPosition}>
       {/* Base of the DJ deck */}
       <primitive object={nodes.Base} />
 
