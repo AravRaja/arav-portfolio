@@ -1,10 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
-import AnimatedButton from './components/AnimatedButton.jsx';
-import { useResponsiveModel } from './hooks/useResponsiveModel.js';
-import { useMouseOverCanvas } from './hooks/useMouseOverCanvas.js';
-import { useDJAnimation } from './hooks/useDJAnimation.js';
+import AnimatedButton from './AnimatedButton.jsx';
+import { useResponsiveModel } from '../../hooks/useResponsiveModel.js';
+import { useMouseOverCanvas } from '../../hooks/useMouseOverCanvas.js';
+import { useDJAnimation } from '../../hooks/useDJAnimation.js';
 
 function DJModel({animation, setAnimation, ANIMATION}) {
   const { nodes } = useGLTF('/DJ1.glb');

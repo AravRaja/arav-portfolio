@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { getDerivedConfig, useDerivedConfig } from '../animation/config.js';
+import { useDerivedConfig } from '../animation/config.js';
 
 export function useDJAnimation({ refs, animation, setAnimation, ANIMATION, mouse }) {
   const rotationSpeedRef = useRef(0);
@@ -24,6 +24,7 @@ export function useDJAnimation({ refs, animation, setAnimation, ANIMATION, mouse
     }
     // Reset rotationSpeedRef on mount
     rotationSpeedRef.current = 0;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useFrame((state, delta) => {

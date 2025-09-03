@@ -1,4 +1,14 @@
 import { useMemo } from 'react';
+
+// Animation states
+export const ANIMATION = {
+  IDLE: 'idle',
+  UP: 'up',
+  DOWN: 'down',
+  RUNNING: 'running',
+  RUNNING_ACTIVATED: 'running_activated'
+};
+
 export const ANIMATION_CONFIG = {
   // Scale factor for all animations
   scale: 1,
@@ -55,21 +65,5 @@ export const getDerivedConfig = (config = ANIMATION_CONFIG) => {
  */
 export const useDerivedConfig = (config) => {
   const cfg = config ?? ANIMATION_CONFIG;
-  return useMemo(() => getDerivedConfig(cfg), [
-    cfg.scale,
-    cfg.TONEBAR_SPEED,
-    cfg.LEFT_RIGHT_SF,
-    cfg.MAX_VINYL_SPEED_PER_SEC,
-    cfg.VINYL_ACCEL_BASE,
-    cfg.VINYL_ACCEL_SCALE,
-    cfg.VINYL_DECEL_BASE,
-    cfg.VINYL_DECEL_SCALE,
-    cfg.START_TONEBAR_LEFT_Z,
-    cfg.START_TONEBAR_LEFT_Y,
-    cfg.START_TONEBAR_RIGHT_Z,
-    cfg.START_TONEBAR_RIGHT_Y,
-    cfg.HIGH_TONEBAR_Y,
-    cfg.HIGH_TONEBAR_Z,
-    cfg.FINAL_TONEBAR_Z,
-  ]);
+  return useMemo(() => getDerivedConfig(cfg), [cfg]);
 };
