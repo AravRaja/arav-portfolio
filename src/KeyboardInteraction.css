@@ -39,6 +39,12 @@ svg#space-base {
   background: transparent;
 }
 
+/* Ensure pointer events are not intercepted by browser gestures on mobile */
+svg#rectangle {
+  touch-action: none;
+  -ms-touch-action: none; /* IE/old Edge */
+}
+
 #stroke-bottom-base {
   fill: none;
   stroke: var(--border-color);

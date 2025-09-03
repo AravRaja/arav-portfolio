@@ -1,5 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import './KeyboardInteraction.css'
+import SpaceButton from './components/SpaceButton.jsx';
+import useSound from 'use-sound';
 
 const CLICK_SOUND = '/click.mp3';
 
@@ -26,32 +28,11 @@ export default function KeyboardInteractions({ animation, setAnimation, ANIMATIO
 
   // Track if button is currently pressed
   const isPressed = useRef(false);
-  let lastTouchTime = 0;
+  const [playClick] = useSound(CLICK_SOUND, { volume: 0.6 });
 
-  const clickAudio = useRef(null);
-
-  useEffect(() => {
-    clickAudio.current = new window.Audio(CLICK_SOUND);
-  }, []);
-
-  const playClick = () => {
-    if (clickAudio.current) {
-      clickAudio.current.currentTime = 0;
-      clickAudio.current.play();
-    }
-  };
-
-
-  // Handles both keyboard and mouse press down
-  const handlePressDown = (e) => {
-    // Skip mouse events right after touch events
-    if (e.type === 'mousedown' && Date.now() - lastTouchTime < 500) {
-      return;
-    }
-
-    if (e.type === 'touchstart') {
-      lastTouchTime = Date.now();
-    }
+  // Unified press down logic
+  const handlePressDown = useCallback(() => {
+    if (isPressed.current) return; // Prevent double-press
 
     playClick();
     isPressed.current = true;
@@ -61,101 +42,75 @@ export default function KeyboardInteractions({ animation, setAnimation, ANIMATIO
       if (prev === ANIMATION.DOWN) return ANIMATION.UP;
       return prev;
     });
-  };
+  }, [playClick, setAnimation, ANIMATION]);
 
-  // Handles both keyboard and mouse release
-  const handlePressUp = () => {
+  // Unified press up logic
+  const handlePressUp = useCallback(() => {
     if (!isPressed.current) return;
+    
     setAnimation((prev) => {
       if (prev === ANIMATION.UP) return ANIMATION.DOWN;
       if (prev === ANIMATION.RUNNING) return ANIMATION.RUNNING_ACTIVATED;
       return prev;
     });
     isPressed.current = false;
-  };
+  }, [setAnimation, ANIMATION]);
+
+  const handleKeyDown = useCallback((e) => {
+    if (e.code === 'Space' || e.key === ' ') {
+      e.preventDefault();
+      handlePressDown();
+    }
+  }, [handlePressDown]);
+
+  const handleKeyUp = useCallback((e) => {
+    if (e.code === 'Space' || e.key === ' ') {
+      e.preventDefault();
+      handlePressUp();
+    }
+  }, [handlePressUp]);
+
+  const handlePointerDown = useCallback((e) => {
+    e.preventDefault();
+    handlePressDown();
+  }, [handlePressDown]);
+
+  const handlePointerUp = useCallback((e) => {
+    e.preventDefault();
+    handlePressUp();
+  }, [handlePressUp]);
+
+  const handlePointerCancel = useCallback((e) => {
+    e.preventDefault();
+    handlePressUp();
+  }, [handlePressUp]);
+
+  const handlePointerLeave = useCallback((e) => {
+    e.preventDefault();
+    handlePressUp();
+  }, [handlePressUp]);
 
   useEffect(() => {
-    const onKeyDown = () => {
-      if (!isPressed.current) { 
-        playClick();
-        isPressed.current = true;
-        setAnimation((prev) => {
-          if (prev === ANIMATION.IDLE) return ANIMATION.UP;
-          if (prev === ANIMATION.RUNNING_ACTIVATED) return ANIMATION.DOWN;
-          if (prev === ANIMATION.DOWN) return ANIMATION.UP;
-          return prev;
-        });
-      }
-    };
-
-    const onKeyUp = () => {
-      if (!isPressed.current) return;
-      setAnimation((prev) => {
-        if (prev === ANIMATION.UP) return ANIMATION.DOWN;
-        if (prev === ANIMATION.RUNNING) return ANIMATION.RUNNING_ACTIVATED;
-        return prev;
-      });
-      isPressed.current = false;
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-    window.addEventListener('mouseup', handlePressUp);
-    window.addEventListener('touchend', handlePressUp);
+    // Add global event listeners
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('pointerup', handlePressUp);
 
     return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup', onKeyUp);
-      window.removeEventListener('mouseup', handlePressUp);
-      window.removeEventListener('touchend', handlePressUp);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('pointerup', handlePressUp);
     };
-  }, [setAnimation, ANIMATION]);
+  }, [handleKeyDown, handleKeyUp, handlePressUp]);
 
 
   return (
-    <div className = 'space-full' >
-      <svg
-        id="rectangle"
-        className={getSpaceButtonState()}
-        onMouseDown={(e) => handlePressDown(e)}
-        onTouchStart={(e) => handlePressDown(e)}
-        viewBox="0 0 400 50"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          id="base-stroke"
-          d="M 4 25 Q 4 5 26 5 H 376 Q 396 5 396 25
-M 4 25 Q 4 45 26 45 H 376 Q 396 45 396 25"
-        />
-        <path 
-          id="stroke-top"
-          d="M 4 25 Q 4 5 26 5 H 376 Q 396 5 396 25"
-        />
-        <path
-          id="stroke-bottom"
-          d="M 4 25 Q 4 45 26 45 H 376 Q 396 45 396 25"
-        />
-        <text
-          className = "space-label"
-          x="50%"
-          y="50%" 
-          dominantBaseline="middle"
-          textAnchor="middle"
-          style={{ userSelect: 'none', pointerEvents: 'none' }}
-        >
-          HOLD SPACE
-        </text>
-      </svg>
-      <svg
-        id="space-base"
-        viewBox="0 0 400 50"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          id="stroke-bottom-base"
-          d="M 4 19 Q 4 45 26 45 H 376 Q 396 45 396 19"
-        />
-      </svg>
-    </div>
+    <SpaceButton
+      stateClass={getSpaceButtonState()}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+      onPointerLeave={handlePointerLeave}
+    />
   );
 }
