@@ -1,5 +1,7 @@
 import React from 'react';
-import { useSpring, a } from '@react-spring/three';
+import { useSpring, animated  } from '@react-spring/three';
+
+const AnimatedGroup = animated.group;
 
 function AnimatedButton({ node, name, active, setActive }) {
   const isPressed = active === name;
@@ -16,14 +18,14 @@ function AnimatedButton({ node, name, active, setActive }) {
   };
 
   return (
-    <a.group
+    <AnimatedGroup
       position={position}
       onPointerDown={() => setActive(name)}
       onPointerUp={handlePointerUp}
       onPointerOut={() => setActive(null)}
     >
       <primitive object={node} />
-    </a.group>
+    </AnimatedGroup>
   );
 }
 
