@@ -11,7 +11,6 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 2rem;
   font-family: 'IBM Plex Mono', monospace;
   letter-spacing: 0.1em;
   font-weight: 600;
@@ -19,7 +18,7 @@
   pointer-events: none;
   z-index: 10;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
   overscroll-behavior: none;
   background-color: #ffffff;
   background-image: radial-gradient(#13121279 1px, transparent 1px);
@@ -40,9 +39,11 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  width: 100%;
-  padding-top: 2.5rem;
+  width: 100%;  
+  position: fixed;
+  top: 4rem;
   
+
 }
 
 .welcome-left {
@@ -51,6 +52,8 @@
   line-height: 1.1;
   white-space: pre-wrap;
   flex: 1;
+  padding-left: 1rem;
+  
 }
 
 .intro-heading {
@@ -66,6 +69,7 @@
   gap: 0.3rem;
   align-items: flex-end;
   flex: 1;
+  padding-right: 1rem;
 }
 
 .label-block {
@@ -111,10 +115,9 @@
 }
 .djscene-canvas {
   background: transparent;
-  width: 100vw;
-  height: 100vh;
-  z-index: 1;
-  overflow: hidden;
+  top: -100px;
+   /* bleed beyond viewport on all sides */
+  z-index: 1000;
   touch-action: none;
   pointer-events: auto;
 }

@@ -3,7 +3,7 @@ import { useSpring, animated  } from '@react-spring/three';
 
 const AnimatedGroup = animated.group;
 
-function AnimatedButton({ node, name, active, setActive }) {
+function AnimatedButton({ node, name, active, setActive, onActivate }) {
   const isPressed = active === name;
 
   // Spring animation for the button press effect
@@ -15,6 +15,7 @@ function AnimatedButton({ node, name, active, setActive }) {
 
   const handlePointerUp = () => {
     setActive(null);
+    if (onActivate) onActivate(name);
   };
 
   return (

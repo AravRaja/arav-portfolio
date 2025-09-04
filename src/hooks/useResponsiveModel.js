@@ -13,7 +13,7 @@ export function useResponsiveModel() {
       } else if (width < 900) {
         setModelScale(1);
       } else {
-        setModelScale(1.7);
+        setModelScale(1.3);
       }
       if (height < 700) {
         setModelPosition([0, 0.8, 0]);

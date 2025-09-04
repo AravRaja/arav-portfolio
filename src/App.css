@@ -4,5 +4,10 @@ html, body {
   height: 100%;
   font-family: 'IBM Plex Mono', monospace;
   overflow: hidden;
+  margin: 0; /* remove default browser margin that caused top black bar */
   
 }
+
+/* Global reset to avoid collapsed top margins showing as a bar under the fixed header */
+*, *::before, *::after { box-sizing: border-box; }
+h1, h2, h3, h4, h5, h6, p { margin: 0; }

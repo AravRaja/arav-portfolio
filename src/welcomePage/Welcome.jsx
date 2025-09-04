@@ -1,11 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import './Welcome.css';
 import DJScene from './components/DJScene.jsx';
 import SpaceButton from './components/SpaceButton.jsx';
 import { ANIMATION } from '../animation/config.js';
+import { useNavigate } from 'react-router-dom';
+import { useZoomAndNavigate } from '../hooks/useZoomAndNavigate.js';
 
 export default function Welcome() {
   const [animation, setAnimation] = useState(ANIMATION.IDLE);
+  const [zoomTrigger, setZoomTrigger] = useState(0);
+  const navigate = useNavigate();
+
+  const startZoom = useCallback(() => {
+    // Increment trigger value; DJScene listens to changes and starts the camera animation
+    setZoomTrigger((n) => n + 1);
+  }, []);
+
+  const { zoomThenNavigate } = useZoomAndNavigate({ setAnimation, ANIMATION, navigate, delayMs: 700, startZoom });
+
+  const routeByName = {
+    Projects: '/projects',
+    Experience: '/experience',
+    Contact: '/contact',
+    About: '/about',
+  };
+
+  const handleActivate = (name) => {
+    const path = routeByName[name];
+    if (path) zoomThenNavigate(path);
+  };
+
+  // Listen for header-triggered navigation when on Welcome page
+  useEffect(() => {
+    const handler = (e) => {
+      const path = e?.detail?.path;
+      if (path) {
+        zoomThenNavigate(path);
+      }
+    };
+    window.addEventListener('welcome-header-nav', handler);
+    return () => window.removeEventListener('welcome-header-nav', handler);
+  }, [zoomThenNavigate]);
 
   return (
     <section className="welcome-container">
@@ -28,6 +63,8 @@ export default function Welcome() {
         animation={animation}
         setAnimation={setAnimation}
         ANIMATION={ANIMATION}
+        onActivate={handleActivate}
+        zoomTrigger={zoomTrigger}
       />
       
       <SpaceButton
