@@ -41,6 +41,15 @@
 
 .left-name {
   letter-spacing: 1px;
+  color: black;
+}
+
+.site-header.blue .left-name {
+  color: white;
+}
+
+.site-header.blue .left-name:hover {
+  color: #0117d5;
 }
 
 .nav-links {
@@ -63,18 +72,10 @@
   color: white;
 }
 
-/* Blue mode adjustments */
-.site-header.blue .time-bubble {
-  background-color: #EB9FEF; /* inside is white */
-  color: #ffffff; /* text matches blue header */
-}
-
-/* Blue-mode highlight rectangle for nav links */
-
-
 .time-bubble {
-  background: linear-gradient(to right, red, yellow);
+  background: yellow;
   padding: 2px 10px;
+  color: black;
   border-radius: 999px;
   letter-spacing: 1px;
 }

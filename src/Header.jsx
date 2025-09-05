@@ -17,7 +17,7 @@ export default function Header() {
   };
   return (
     <header className={`site-header ${isBlue ? 'blue' : ''}`}>
-      <div className="left-name">ARAV.RAJA</div>
+      <Link to="/" className="left-name"><span className="nav-link-highlight">ARAV.RAJA</span></Link>
       <div className="centre"> 
         <nav className="nav-links">
           <Link to="/about" onClick={handleNavClick('/about')}><span className="nav-link-highlight">ABOUT</span></Link>
@@ -26,7 +26,7 @@ export default function Header() {
           <Link to="/contact" onClick={handleNavClick('/contact')}><span className="nav-link-highlight">CONTACT</span></Link>
         </nav>
       </div>
-      <div className="time-bubble">|</div>
+      <div className="time-bubble">|||</div>
     </header>
   )
 }
