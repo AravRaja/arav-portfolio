@@ -111,7 +111,7 @@ export default function DJScene({ animation, setAnimation, ANIMATION, onActivate
       style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}
       resize={{ scroll: false, debounce: { scroll: 50, resize: 0 } }}
     >
-      <ambientLight intensity={0} />
+      <ambientLight intensity={0}/>
       <directionalLight position={[5, 5, 5]} intensity={5} />
       <DJModel
         animation={animation}
