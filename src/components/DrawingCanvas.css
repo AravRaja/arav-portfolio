@@ -1,0 +1,234 @@
+.drawing-canvas-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  border-radius: 8px;
+  padding: 0.5rem;
+  box-sizing: border-box;
+}
+
+.canvas-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  position: relative;
+}
+
+.canvas-header .canvas-title {
+  flex: 1;
+  text-align: center;
+}
+
+.canvas-header .artist-name-input {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.artist-name-input {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-family: 'IBM Plex Mono', monospace;
+  width: 120px;
+  background-color: white;
+  color: black;
+}
+
+.artist-name-input:focus {
+  outline: none;
+  border-color: #F0FF18;
+}
+
+.canvas-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #000;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.drawing-canvas {
+  flex: 1;
+  border: 2px solid #000;
+  cursor: crosshair;
+  background-color: white;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  width: 100%;
+  min-height: 0;
+}
+
+.drawing-canvas:hover {
+  border-color: #F0FF18;
+}
+
+.drawing-controls {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  font-family: 'IBM Plex Mono', monospace;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tool-section,
+.color-section,
+.size-section,
+.action-section {
+  display: flex;
+  flex-direction: row;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.tool-buttons,
+.color-palette,
+.size-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.tool-btn,
+.size-btn {
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  color: #000;
+  padding: 0.3rem 0.6rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  transition: all 0.2s ease;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.tool-btn:hover,
+.save-btn:hover {
+  background: rgba(0, 123, 255, 0.2);
+  border-color: #007bff;
+}
+
+.send-btn {
+  background: rgba(0, 123, 255, 0.1);
+  border: 1px solid rgba(0, 123, 255, 0.3);
+  color: #007bff;
+  padding: 0.4rem 0.8rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  transition: all 0.2s ease;
+  font-family: 'IBM Plex Mono', monospace;
+  margin-left: 0.5rem;
+}
+
+.send-btn:hover {
+  background: rgba(0, 123, 255, 0.2);
+  border-color: #007bff;
+}
+
+.tool-btn.active,
+.size-btn.active {
+  background: #F0FF18;
+  border-color: #F0FF18;
+  color: #000;
+}
+
+.color-btn {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  max-width: 24px;
+  max-height: 24px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  flex-grow: 0;
+  display: inline-block;
+  padding: 0;            /* prevent oval due to padding */
+  line-height: 0;        /* remove inline text height */
+  -webkit-appearance: none; /* reset native button styles */
+  appearance: none;
+  box-sizing: border-box;
+}
+
+.color-btn:hover {
+  transform: scale(1.1);
+  border-color: #000;
+}
+
+.color-btn.active {
+  border-color: #000;
+  border-width: 3px;
+  transform: scale(1.1);
+}
+
+.clear-btn {
+  background: rgba(255, 0, 0, 0.1);
+  border: 1px solid rgba(255, 0, 0, 0.3);
+  color: #ff4444;
+  padding: 0.4rem 0.8rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  transition: all 0.2s ease;
+  font-family: 'IBM Plex Mono', monospace;
+  align-self: flex-start;
+}
+
+.clear-btn:hover {
+  background: rgba(255, 0, 0, 0.2);
+  border-color: rgba(255, 0, 0, 0.5);
+  transform: translateY(-1px);
+}
+
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .drawing-canvas-container {
+    padding: 0.8rem;
+  }
+  
+  .drawing-controls {
+    gap: 0.6rem;
+  }
+  
+  .tool-buttons,
+  .color-palette,
+  .size-buttons {
+    gap: 0.3rem;
+  }
+  
+  .tool-btn,
+  .size-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.65rem;
+  }
+  
+  .color-btn {
+    width: 20px;
+    height: 20px;
+  }
+
+  .floating-drawing,
+  .dropping-drawing {
+    width: 80px;
+    height: 80px;
+  }
+}
