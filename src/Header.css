@@ -1,10 +1,10 @@
 .site-header {
-  position: relative;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
   height: 55px;
-  background-color: rgb(255, 255, 255);
+  background-color: transparent;
   border-bottom: 1px solid #959595;
   display: flex;
   align-items: center;
@@ -14,7 +14,14 @@
   color: black;   
   font-weight: 600;
   font-size: 16px;
-  z-index: 1000;
+  z-index: 2000;
+}
+
+/* Blue variant used on non-home routes */
+.site-header.blue {
+  background-color: #0117d5;
+  border-bottom: 1px solid #ffffff;
+  color: white;
 }
 
 .header-left,
@@ -34,6 +41,15 @@
 
 .left-name {
   letter-spacing: 1px;
+  color: black;
+}
+
+.site-header.blue .left-name {
+  color: white;
+}
+
+.site-header.blue .left-name:hover {
+  color: #0117d5;
 }
 
 .nav-links {
@@ -50,9 +66,16 @@
   letter-spacing: 1px;
   font-weight: bolder;
 }
+
+/* Ensure readable link color on blue header */
+.site-header.blue .nav-links a {
+  color: white;
+}
+
 .time-bubble {
-  background-color: rgb(234, 255, 0);
+  background: yellow;
   padding: 2px 10px;
+  color: black;
   border-radius: 999px;
   letter-spacing: 1px;
 }
@@ -61,6 +84,14 @@
   position: relative;
   display: inline-block;
   transition: color 0.3s ease;
+}
+
+.site-header.blue .nav-links a {
+  color: white;
+}
+
+.site-header.blue .nav-links a:hover {
+  color: #0117d5;
 }
 
 .nav-link-highlight::before {
@@ -95,4 +126,5 @@
     padding: 0 10px;
     height: 40px;
   }
+  
 }

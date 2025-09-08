@@ -1,16 +1,29 @@
 import React from 'react'
 import './Header.css'
+import { Link, useLocation } from 'react-router-dom'
 
 export default function Header() {
+  const location = useLocation();
+  const isBlue = location.pathname !== '/';
+  const onHome = location.pathname === '/';
+
+  const handleNavClick = (path) => (e) => {
+    // If we're on the Welcome page, trigger the zoom-first navigation.
+    if (onHome) {
+      e.preventDefault();
+      window.dispatchEvent(new CustomEvent('welcome-header-nav', { detail: { path } }));
+    }
+    // Otherwise, allow normal Link navigation.
+  };
   return (
-    <header className="site-header">
-      <div className="left-name">ARAV.RAJA</div>
-      <div className= "centre"> 
+    <header className={`site-header ${isBlue ? 'blue' : ''}`}>
+      <Link to="/" className="left-name"><span className="nav-link-highlight">ARAV.RAJA</span></Link>
+      <div className="centre"> 
         <nav className="nav-links">
-          <a href="#about"><span className="nav-link-highlight">ABOUT</span></a>
-          <a href="#projects"><span className="nav-link-highlight">PROJECTS</span></a>
-          <a href="#experience"><span className="nav-link-highlight">EXPERIENCE</span></a>
-          <a href="#contact"><span className="nav-link-highlight">CONTACT</span></a>
+          <Link to="/about" onClick={handleNavClick('/about')}><span className="nav-link-highlight">ABOUT</span></Link>
+          <Link to="/projects" onClick={handleNavClick('/projects')}><span className="nav-link-highlight">PROJECTS</span></Link>
+          <Link to="/experience" onClick={handleNavClick('/experience')}><span className="nav-link-highlight">EXPERIENCE</span></Link>
+          <Link to="/contact" onClick={handleNavClick('/contact')}><span className="nav-link-highlight">CONTACT</span></Link>
         </nav>
       </div>
       <div className="time-bubble">|||</div>

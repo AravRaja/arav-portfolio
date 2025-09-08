@@ -1,0 +1,206 @@
+.image-board-page {
+  min-height: 100dvh;
+  background-color: #0117d5;
+  color: white;
+  font-family: 'IBM Plex Mono', monospace;
+  
+  margin: 0;
+  overflow: hidden;
+}
+
+.board-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1rem;
+  margin-bottom: 1rem;
+}
+
+.retro-title {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 2rem;
+  color: #F0FF18;
+  text-align: center;
+  margin-top: 0.3rem;
+}
+
+.board-header h1 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: #F0FF18;
+  margin: 0;
+}
+
+.back-link {
+  color: white;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.back-link:hover {
+  color: #F0FF18;
+}
+
+/* Floating drawings container */
+.floating-drawings-container {
+  top: 55px;
+  position: relative;
+  width: 100%;
+  height: 100vh;
+}
+
+.floating-drawing-wrapper {
+  position: absolute;
+  animation: gentleFloat 15s infinite ease-in-out;
+  transition: transform 0.2s ease, z-index 0s 0.2s;
+}
+
+.floating-drawing-wrapper:hover {
+  transform: scale(1.1);
+  z-index: 10;
+  transition-delay: 0s;
+}
+
+.floating-drawing-wrapper.fade-out {
+  opacity: 0;
+}
+
+.floating-drawing-wrapper.fade-in {
+  opacity: 0;
+  animation: fadeIn 0.5s ease forwards, gentleFloat 15s infinite ease-in-out 0.5s;
+}
+
+.floating-drawing {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  display: block;
+  cursor: pointer;
+}
+
+.drawing-name-overlay {
+  position: absolute;
+  bottom: 5px;
+  left: 5px;
+  background: white;
+  color: black;
+  padding: 2px 5px;
+  font-size: 0.7rem;
+  font-family: 'IBM Plex Mono', monospace;
+  border-radius: 3px;
+  pointer-events: none;
+  transform-origin: bottom left;
+  width: fit-content;
+  height: fit-content;
+}
+
+.artist-name {
+  font-weight: bold;
+  font-size: 0.8rem;
+  color: black;
+}
+
+@keyframes gentleFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Image modal styles */
+.image-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  cursor: pointer;
+}
+
+.image-modal-content {
+  position: relative;
+  max-width: 80vw;
+  max-height: 80vh;
+  cursor: default;
+}
+
+.expanded-image {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.close-button {
+  position: absolute;
+  top: -15px;
+  right: -15px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  color: black;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.close-button:hover {
+  background: white;
+}
+
+.expanded-info {
+  margin-top: 15px;
+  text-align: center;
+  color: white;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.expanded-artist-name {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: white;
+}
+
+.loading-spinner-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+}
+
+.loading-spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top: 4px solid #F0FF18;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
