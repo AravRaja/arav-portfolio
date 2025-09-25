@@ -1,0 +1,603 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+.experiences-page {
+  min-height: 100dvh;
+  background-color: #0117d5;
+  color: white;
+  font-family: 'IBM Plex Mono', monospace;
+  padding: 0;
+  margin: 0;
+  overflow-x: hidden;
+  overflow-y: hidden; /* Disable vertical scrolling on desktop */
+}
+
+.experiences-container {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem 1rem;
+  box-sizing: border-box;
+  animation: slideUp 0.8s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+}
+
+.experiences-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  z-index: 10;
+}
+
+.experiences-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  margin: 0 0 0.5rem 0;
+  color: #F0FF18;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.experiences-subtitle {
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  opacity: 0.9;
+  margin: 0;
+  color: white;
+}
+
+.timeline-container {
+  position: relative;
+  width: 100%;
+  max-width: 1600px;
+  height: 500px;
+  display: flex;
+  align-items: center; /* Vertically center the cards */
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+/* The main timeline line is now replaced by individual connectors */
+.timeline-line {
+  display: none;
+}
+
+.timeline-content {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 2;
+  gap: 50px; /* Add space between cards for the connector */
+}
+
+.experience-card {
+  position: relative;
+  width: 240px;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: translateY(50px) scale(0.9);
+  transition: all 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.experience-card.animated {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition-delay: var(--delay);
+}
+
+/* Make all cards the same height and add horizontal connector */
+.experience-card {
+  height: 490px;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  position: relative; /* Needed for the ::after pseudo-element */
+}
+
+/* Horizontal Timeline Connector */
+.experience-card:not(:last-child)::after {
+  /* Connector line */
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -50px; /* length of the line */
+  width: 50px;
+  height: 4px;
+  background: #F0FF18;
+  transform: translateY(-50%);
+  box-shadow: 0 0 15px rgba(240, 255, 24, 0.4);
+  z-index: 1;
+}
+
+.experience-card:not(:last-child)::before {
+  /* Dot at the end of the line */
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -25px; /* halfway into the line */
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #F0FF18;
+  box-shadow: 0 0 20px 5px rgba(240, 255, 24, 0.8);
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
+.card-content {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(240, 255, 24, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-content:hover {
+  border-color: #F0FF18;
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(240, 255, 24, 0.2);
+}
+
+.card-image-container {
+  width: 100%;
+  height: 120px;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid rgba(240, 255, 24, 0.2);
+  flex-shrink: 0;
+}
+
+.card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #F0FF18;
+  margin: 0 0 0.3rem 0;
+  letter-spacing: 0.05em;
+}
+
+.card-company {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 0.2rem;
+}
+
+.card-period {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.05em;
+}
+
+.card-description {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 1rem 0;
+  flex: 1;
+}
+
+.card-technologies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tech-tag {
+  background: rgba(240, 255, 24, 0.1);
+  color: #F0FF18;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  border: 1px solid rgba(240, 255, 24, 0.3);
+  letter-spacing: 0.05em;
+}
+
+/* Experience Modal Styles */
+.experience-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  cursor: pointer;
+  backdrop-filter: blur(5px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.experience-modal-content {
+  background: #0117d5;
+  border: 2px solid #F0FF18;
+  border-radius: 12px;
+  max-width: 800px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  cursor: default;
+  position: relative;
+  animation: slideUpModal 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.modal-close-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #F0FF18;
+  border-radius: 50%;
+  background: rgba(240, 255, 24, 0.1);
+  color: #F0FF18;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.modal-close-button:hover {
+  background: #F0FF18;
+  color: #0117d5;
+  transform: scale(1.1);
+}
+
+.modal-header {
+  display: flex;
+  gap: 2rem;
+  padding: 2rem 2rem 1rem 2rem;
+  align-items: flex-start;
+}
+
+.modal-image-container {
+  flex-shrink: 0;
+  width: 150px;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid rgba(240, 255, 24, 0.3);
+}
+
+.modal-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.modal-title-section {
+  flex: 1;
+}
+
+.modal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #F0FF18;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: 0.05em;
+}
+
+.modal-company {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: white;
+  margin: 0 0 0.3rem 0;
+}
+
+.modal-period {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.05em;
+}
+
+.modal-body {
+  padding: 0 2rem 2rem 2rem;
+}
+
+.modal-section {
+  margin-bottom: 2rem;
+}
+
+.modal-section-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #F0FF18;
+  margin: 0 0 1rem 0;
+  letter-spacing: 0.1em;
+}
+
+.modal-description {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+}
+
+.modal-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.modal-list-item {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.8rem;
+  padding-left: 1.2rem;
+  position: relative;
+}
+
+.modal-list-item::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  color: #F0FF18;
+  font-weight: bold;
+}
+
+.modal-technologies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.modal-tech-tag {
+  background: rgba(240, 255, 24, 0.15);
+  color: #F0FF18;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid rgba(240, 255, 24, 0.4);
+  letter-spacing: 0.05em;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUpModal {
+  from {
+    transform: translateY(50px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Mobile Modal Styles */
+@media (max-width: 768px) {
+  .experience-modal-content {
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  .modal-header {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.5rem 1.5rem 1rem 1.5rem;
+  }
+
+  .modal-image-container {
+    width: 100%;
+    height: 150px;
+  }
+
+  .modal-body {
+    padding: 0 1.5rem 1.5rem 1.5rem;
+  }
+
+  .modal-title {
+    font-size: 1.3rem;
+  }
+
+  .modal-company {
+    font-size: 1rem;
+  }
+
+  .modal-close-button {
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 35px;
+    height: 35px;
+    font-size: 20px;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 1200px) {
+  .experiences-title {
+    padding-top: 5rem;
+  }
+  .timeline-content {
+    flex-direction: column;
+    height: auto;
+    gap: 3rem;
+    overflow-y: auto;
+    padding: 2rem 0;
+  }
+
+  .timeline-line {
+    display: none;
+  }
+
+  .experience-card {
+    width: 100%;
+    max-width: 400px;
+    height: 350px;
+    align-self: center !important;
+    margin: 0 !important;
+  }
+
+  .card-connector {
+    display: none;
+  }
+
+  .experiences-page {
+    overflow-y: auto; /* Enable scrolling on mobile */
+  }
+
+  .experiences-container {
+    height: auto;
+    min-height: 100vh;
+    padding: 1rem;
+  }
+
+  .timeline-container {
+    height: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .experiences-title {
+    font-size: 1.2rem;
+  }
+
+  .experiences-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .experience-card {
+    width: 100%;
+    max-width: 350px;
+  }
+
+  .card-content {
+    padding: 1.2rem;
+  }
+
+  .card-image-container {
+    height: 100px;
+  }
+
+  .card-title {
+    font-size: 0.9rem;
+  }
+
+  .card-company {
+    font-size: 0.8rem;
+  }
+
+  .card-description {
+    font-size: 0.75rem;
+  }
+
+  .timeline-content {
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .experiences-container {
+    padding: 0.5rem;
+  }
+
+  .experiences-header {
+    margin-bottom: 2rem;
+  }
+
+  .experiences-title {
+    font-size: 1rem;
+  }
+
+  .experiences-subtitle {
+    font-size: 0.75rem;
+  }
+
+  .experience-card {
+    max-width: 300px;
+  }
+
+  .card-content {
+    padding: 1rem;
+  }
+
+  .card-image-container {
+    height: 80px;
+  }
+
+  .card-title {
+    font-size: 0.85rem;
+  }
+
+  .card-company {
+    font-size: 0.75rem;
+  }
+
+  .card-period {
+    font-size: 0.7rem;
+  }
+
+  .card-description {
+    font-size: 0.7rem;
+  }
+
+  .tech-tag {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+  }
+
+  .timeline-content {
+    gap: 1.5rem;
+  }
+}
+
+/* Simplified hover effects for desktop */
+@media (min-width: 1201px) {
+  .experience-card:hover .card-content {
+    transform: translateY(-5px);
+  }
+}
