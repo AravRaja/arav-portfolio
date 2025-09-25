@@ -3,7 +3,8 @@
 html, body {
   height: 100%;
   font-family: 'IBM Plex Mono', monospace;
-  overflow: hidden;
+  overflow-x: hidden; /* Only hide horizontal scroll */
+  overflow-y: auto; /* Allow vertical scrolling */
   margin: 0; /* remove default browser margin that caused top black bar */
   
 }

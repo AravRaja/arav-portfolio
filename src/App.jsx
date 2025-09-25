@@ -4,7 +4,7 @@ import Welcome from './welcomePage/Welcome'
 import "./App.css"
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Projects from './pages/Projects.jsx'
-import Experience from './pages/Experience.jsx'
+import Experience from './pages/Experiences.jsx'
 import Contact from './pages/Contact';
 import ImageBoard from './pages/ImageBoard.jsx'
 import About from './pages/About.jsx'
