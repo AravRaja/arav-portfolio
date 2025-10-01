@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './Projects.css';
 
 
@@ -116,21 +117,37 @@ const projects = [
 
 export default function Projects() {
   const [selectedProject, setSelectedProject] = useState(null);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const closeModal = () => setSelectedProject(null);
+  // Open modal if ?id=<projectId> is present
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id');
+    if (id) {
+      const match = projects.find(p => p.id === id);
+      if (match) setSelectedProject(match);
+    }
+  }, [location.search]);
+
+  const closeModal = () => {
+    setSelectedProject(null);
+    // Clean up the query param without adding history entries
+    if (location.search.includes('id=')) {
+      navigate('/projects', { replace: true });
+    }
+  };
 
   const handleLinkClick = (url) => {
     if (url && url !== '#') window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return (
-    <div className="projects-page">
-      <div className="projects-container slide-up-animation"> {/* Added animation class */}
-
-        {/* Added Header */}
-        <div className="projects-header">
-          <h1 className="projects-title">[PROJECT SHOWCASE]</h1>
-          <p className="projects-subtitle">A COLLECTION OF MY WORK</p>
+    <main className="experiences-page">
+      <div className="experiences-container">
+        <div className="experiences-header">
+          <h1 className="experiences-title">[EXPERIENCE TIMELINE]</h1>
+          <p className="experiences-subtitle">MY JOURNEY IN TECH & RESEARCH</p>
         </div>
 
 
@@ -145,7 +162,10 @@ export default function Projects() {
                 '--project-image': `url(${project.image})`,
                 animationDelay: `${index * 0.2}s`
               }}
-              onClick={() => setSelectedProject(project)}
+              onClick={() => {
+                setSelectedProject(project);
+                navigate(`/projects?id=${project.id}`, { replace: true });
+              }}
             >
               <div className="album-cover">
                 <div className="cover-art">
@@ -178,10 +198,11 @@ export default function Projects() {
             </div>
           ))}
         </div>
+      </div>
 
         {selectedProject && (
-          <div className="project-modal-overlay" onClick={closeModal}>
-            <div className="project-modal-content" onClick={e => e.stopPropagation()}>
+          <div className="experience-modal-overlay" onClick={closeModal}>
+            <div className="experience-modal-content" onClick={e => e.stopPropagation()}>
               <button 
                 className="modal-close-button"
                 onClick={closeModal}
@@ -255,7 +276,7 @@ export default function Projects() {
           </div>
         )}
 
-      </div>
-    </div>
+      
+    </main>
   );
 }

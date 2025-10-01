@@ -79,7 +79,21 @@ export default function Welcome() {
           Music Recommendations with <strong>Interaction-Aware Neural Nets</strong>
         </div>
         <div style={{ marginTop: '8px' }}>
-          <a href="#projects" className="see-more-link">See more →</a>
+          <a
+            href="/projects?id=music-recs"
+            className="see-more-link"
+            onClick={(e) => {
+              console.log("See more clicked")
+              e.preventDefault();
+              if (typeof zoomThenNavigate === 'function') {
+                zoomThenNavigate('/projects?id=music-recs');
+              } else {
+                window.location.href = '/projects?id=music-recs';
+              }
+            }}
+          >
+            See more →
+          </a>
         </div>
       </div>
     </section>

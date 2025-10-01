@@ -24,9 +24,11 @@
 }
 
 .experiences-header {
+  position: fixed;
   text-align: center;
   margin-bottom: 3rem;
   z-index: 10;
+  top: 90px; 
 }
 
 .experiences-title {
@@ -51,11 +53,12 @@
   position: relative;
   width: 100%;
   max-width: 1600px;
-  height: 500px;
+  padding-top: 90px;
+  
   display: flex;
-  align-items: center; /* Vertically center the cards */
+  align-items: center; 
   justify-content: center;
-  box-sizing: border-box;
+  
 }
 
 /* The main timeline line is now replaced by individual connectors */
@@ -226,7 +229,6 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.85);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -237,8 +239,10 @@
 }
 
 .experience-modal-content {
+  position: fixed;
   background: #0117d5;
   border: 2px solid #F0FF18;
+  top: 10px;
   border-radius: 12px;
   max-width: 800px;
   width: 90%;
@@ -459,9 +463,6 @@
 
 /* Mobile Responsiveness */
 @media (max-width: 1200px) {
-  .experiences-title {
-    padding-top: 5rem;
-  }
   .timeline-content {
     flex-direction: column;
     height: auto;
@@ -501,7 +502,12 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
+  .experiences-header {
+    top: 75px;
+     
+  }
+
   .experiences-title {
     font-size: 1.2rem;
   }
@@ -544,10 +550,10 @@
   .experiences-container {
     padding: 0.5rem;
   }
-
   .experiences-header {
-    margin-bottom: 2rem;
+    top: 60px;
   }
+  
 
   .experiences-title {
     font-size: 1rem;
