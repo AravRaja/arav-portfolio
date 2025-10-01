@@ -29,7 +29,10 @@ export default function Header() {
     };
 
     // Set theme color to match header background
-    addMetaTag('theme-color', 'rgb(255, 255, 150)');
+    addMetaTag(
+      'theme-color',
+      onHome ? 'rgb(255, 255, 255)' : 'rgb(1, 23, 213)'
+    );
     addMetaTag('apple-mobile-web-app-capable', 'yes');
     addMetaTag('apple-mobile-web-app-status-bar-style', 'black-translucent');
     
