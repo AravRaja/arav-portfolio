@@ -91,7 +91,7 @@
 }
 
 .site-header.blue .nav-links a:hover {
-  color: #0117d5;
+  color: rgb(1, 23, 213);
 }
 
 .nav-link-highlight::before {
