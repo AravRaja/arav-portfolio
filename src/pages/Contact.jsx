@@ -150,7 +150,7 @@ export default function Contact() {
               <a href="https://github.com/aravraja" target="_blank" rel="noopener noreferrer" className="social-icon-link" aria-label="GitHub">
                 <GithubIcon className="social-icon" />
               </a>
-              <a href="https://linkedin.com/in/aravraja" target="_blank" rel="noopener noreferrer" className="social-icon-link" aria-label="LinkedIn">
+              <a href="https://www.linkedin.com/in/arav-raja-73833a355/" target="_blank" rel="noopener noreferrer" className="social-icon-link" aria-label="LinkedIn">
                 <LinkedinIcon className="social-icon" />
               </a>
               <a href="mailto:aravraja8@gmail.com" className="social-icon-link" aria-label="Email">

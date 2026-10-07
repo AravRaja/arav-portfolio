@@ -5,7 +5,9 @@ export function useMouseOverCanvas(selector) {
 
   useEffect(() => {
     const handleMouseMove = (e) => {
-      const rect = document.querySelector(selector).getBoundingClientRect();
+      const canvas = document.querySelector(selector);
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
       const relX = (e.clientX - rect.left) / rect.width;
       const relY = (e.clientY - rect.top) / rect.height;
       setMouse({ x: relX, y: relY });

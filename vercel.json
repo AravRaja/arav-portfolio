@@ -1,0 +1,13 @@
+{
+  "rewrites": [
+    { "source": "/projects", "destination": "/index.html" },
+    { "source": "/experience", "destination": "/index.html" },
+    { "source": "/about", "destination": "/index.html" },
+    { "source": "/contact", "destination": "/index.html" },
+    { "source": "/imageboard", "destination": "/index.html" },
+    {
+      "source": "/demos/vocaloop/",
+      "destination": "/demos/vocaloop/index.html"
+    }
+  ]
+}

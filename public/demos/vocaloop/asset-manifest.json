@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/demos/vocaloop/static/css/main.bb53ee6c.css",
+    "main.js": "/demos/vocaloop/static/js/main.85e688ec.js",
+    "static/js/453.8ab44547.chunk.js": "/demos/vocaloop/static/js/453.8ab44547.chunk.js",
+    "index.html": "/demos/vocaloop/index.html",
+    "main.bb53ee6c.css.map": "/demos/vocaloop/static/css/main.bb53ee6c.css.map",
+    "main.85e688ec.js.map": "/demos/vocaloop/static/js/main.85e688ec.js.map",
+    "453.8ab44547.chunk.js.map": "/demos/vocaloop/static/js/453.8ab44547.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.bb53ee6c.css",
+    "static/js/main.85e688ec.js"
+  ]
+}

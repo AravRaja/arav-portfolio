@@ -24,6 +24,58 @@
   background-image: radial-gradient(#13121279 1px, transparent 1px);
   background-size: 10px 10px;
   gap: 2rem;
+  transition: color var(--stage-seconds, 0.7s) ease-in-out;
+}
+
+/* Music stage (after the beat drop): the camera zooms into the deck and the page becomes
+   plain blue with white text, like the other pages. */
+.welcome-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: #0117d5;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--stage-seconds, 0.7s) ease-in-out;
+}
+
+.welcome-container.music-stage {
+  color: #fff;
+}
+
+.welcome-container.music-stage::after {
+  opacity: 1;
+}
+
+/* Hide the deck as the zoom finishes so it reads as a new page */
+.welcome-container .djscene-canvas {
+  transition: opacity 0.15s ease;
+}
+
+.welcome-container.music-stage .djscene-canvas {
+  opacity: 0;
+  transition: opacity 0.2s ease calc(var(--stage-seconds, 0.7s) * 0.7);
+}
+
+.welcome-container .project-info {
+  /* coming back: wait until the blue has mostly faded */
+  transition: opacity 0.3s ease calc(var(--stage-seconds, 0.7s) * 0.5), visibility 0s calc(var(--stage-seconds, 0.7s) * 0.5);
+}
+
+.welcome-container.music-stage .project-info {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0s 0.2s;
+}
+
+.welcome-container.music-stage #base-stroke,
+.welcome-container.music-stage #stroke-bottom-base {
+  stroke: #fff;
+}
+
+.welcome-container.music-stage svg#rectangle text {
+  fill: #fff;
 }
 
 .welcome-container::before {
@@ -152,4 +204,8 @@
     white-space: nowrap;
     pointer-events: auto;
   }
+}@media (max-width: 900px) {
+  .welcome-header-row {top: 96px; gap: 14px;}
+  .welcome-left {font-size: 10px; line-height: 1.5;}
+  .welcome-right {font-size: 8px; line-height: 1.5; gap: 2px;}
 }

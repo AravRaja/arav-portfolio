@@ -1,149 +1,150 @@
-import React, { useState, useEffect } from 'react';
-import './About.css';
-
+import { Link } from "react-router-dom";
+import "./Portfolio.css";
 export default function About() {
-  const [animatedSections, setAnimatedSections] = useState(new Set());
-
-  useEffect(() => {
-    // Animate sections in sequence
-    const animateSections = () => {
-      const sections = ['hero', 'skills', 'interests'];
-      sections.forEach((section, index) => {
-        setTimeout(() => {
-          setAnimatedSections(prev => new Set([...prev, section]));
-        }, index * 300);
-      });
-    };
-
-    const timer = setTimeout(animateSections, 500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const skills = [
-    { category: 'AI/ML', items: ['Neural Networks', 'TensorFlow', 'PyTorch', 'Computer Vision', 'NLP'] },
-    { category: 'Audio Tech', items: ['DSP', 'JUCE', 'Real-time Processing', 'Music Information Retrieval'] },
-    { category: 'Web Development', items: ['React', 'Node.js', 'Three.js', 'TypeScript', 'GraphQL'] },
-    { category: 'Systems', items: ['Python', 'C++', 'Java', 'AWS', 'Docker', 'PostgreSQL'] }
-  ];
-
-  const interests = [
-    { icon: '🎵', title: 'Music Production', description: 'Creating electronic music and exploring generative composition' },
-    { icon: '🤖', title: 'AI Research', description: 'Investigating neural architectures for creative applications' },
-    { icon: '🎮', title: 'Interactive Media', description: 'Building immersive experiences with 3D graphics and audio' },
-    { icon: '📚', title: 'Continuous Learning', description: 'Always exploring new technologies and methodologies' }
-  ];
-
-
   return (
-    <main className="about-page">
-      <div className="about-container slide-up-animation">
-        
-        {/* Header Section */}
-        <div className="about-header">
-          <h1 className="about-title">[ABOUT ME]</h1>
-          <p className="about-subtitle">DEVELOPER, RESEARCHER & CREATIVE TECHNOLOGIST</p>
-        </div>
-
-        {/* Hero Section */}
-        <section className={`about-section hero-section ${
-          animatedSections.has('hero') ? 'animated' : ''
-        }`}>
-          <div className="hero-content">
-            <div className="hero-text">
-              <h2 className="section-title">[WHO I AM]</h2>
-              <p className="hero-description">
-                I'm a Computer Science student at the University of Bristol with a passion for 
-                merging technology and creativity. My work spans AI/ML research, audio technology, 
-                and interactive web experiences. I believe in building technology that not only 
-                solves problems but also inspires and delights users.
-              </p>
-              <p className="hero-description">
-                Currently focused on neural networks for music recommendation systems, I'm always 
-                exploring the intersection of artificial intelligence and human creativity. When I'm 
-                not coding, you'll find me producing music, experimenting with new frameworks, or 
-                diving deep into research papers.
-              </p>
-            </div>
-            <div className="hero-stats">
-              <div className="stat-item">
-                <span className="stat-number">20</span>
-                <span className="stat-label">Years Old</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-number">3+</span>
-                <span className="stat-label">Years Coding</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-number">15+</span>
-                <span className="stat-label">Projects Built</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-number">∞</span>
-                <span className="stat-label">Curiosity Level</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Skills and Interests Combined Section */}
-        <section className={`about-section skills-interests-section ${
-          animatedSections.has('skills') ? 'animated' : ''
-        }`}>
-          <div className="skills-interests-container">
-            {/* Skills Column */}
-            <div className="skills-column">
-              <h2 className="section-title">[TECHNICAL SKILLS]</h2>
-              <div className="skills-grid">
-                {skills.map((skillGroup, index) => (
-                  <div key={skillGroup.category} className="skill-group" style={{'--delay': `${index * 0.1}s`}}>
-                    <h3 className="skill-category">{skillGroup.category}</h3>
-                    <div className="skill-items">
-                      {skillGroup.items.map((skill, skillIndex) => (
-                        <span key={skillIndex} className="skill-tag">
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Interests Column */}
-            <div className="interests-column">
-              <h2 className="section-title">[INTERESTS & PASSIONS]</h2>
-              <div className="interests-grid">
-                {interests.map((interest, index) => (
-                  <div key={interest.title} className="interest-card" style={{'--delay': `${index * 0.1}s`}}>
-                    <div className="interest-icon">{interest.icon}</div>
-                    <h3 className="interest-title">{interest.title}</h3>
-                    <p className="interest-description">{interest.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Contact CTA */}
-        <section className="about-section cta-section">
-          <div className="cta-content">
-            <h2 className="cta-title">Let's Build Something Amazing Together</h2>
-            <p className="cta-description">
-              I'm always open to discussing new opportunities, collaborations, or just 
-              chatting about technology and music. Feel free to reach out!
+    <main className="portfolio-page">
+      <div className="portfolio-inner">
+        <p className="portfolio-kicker">Arav Raja / London, UK</p>
+        <h1 className="portfolio-heading">I build things.</h1>
+        <p className="bio-lead">
+          I’m a technical founder working across robotics, machine learning and
+          music. Right now, I’m building{" "}
+          <a href="https://bzzd.tech" target="_blank" rel="noreferrer">
+            bzzd
+          </a>
+          : autonomous barber stations for short haircuts.
+        </p>
+        <div className="bio-columns">
+          <section>
+            <h2>From dissertation to company</h2>
+            <p>
+              The robot I wanted to build began as a mechanical and electrical
+              engineering problem. I shaped my Computer Science dissertation
+              around its software, and the university provided lab space,
+              equipment and engineering support for the first prototype.
             </p>
-            <div className="cta-buttons">
-              <a href="/contact" className="cta-button primary">
-                Get In Touch
-              </a>
-              <a href="/projects" className="cta-button secondary">
-                View My Work
-              </a>
-            </div>
+            <p>
+              That project became bzzd. I graduated from Bristol in 2026 and now
+              work on it full-time as co-founder and CEO.
+            </p>
+          </section>
+          <section>
+            <h2>The other side of the record</h2>
+            <p>
+              I’ve built robots since school, including competition robots that
+              took me to VEX Worlds. I also build music software: VocaLoop turns
+              your voice into instrument parts, while LofAI generates a
+              continuous stream of lo-fi hip-hop.
+            </p>
+            <p>
+              At Bristol, I developed facial-expression LoRAs for psychology
+              research. I like projects where code reaches beyond the screen:
+              into movement, sound or the way people see things.
+            </p>
+          </section>
+        </div>
+        <div className="bio-facts">
+          <div>
+            <strong>85%</strong>
+            <span>Computer Science dissertation</span>
           </div>
-        </section>
-
+          <div>
+            <strong>Brishack</strong>
+            <span>2025 winner / plant-growing robot</span>
+          </div>
+          <div>
+            <strong>VEX Worlds</strong>
+            <span>Highest programming score</span>
+          </div>
+        </div>
+        <div className="bio-columns">
+          <section>
+            <h2>Education</h2>
+            <div className="education-entry">
+              <h3>University of Bristol</h3>
+              <p>BA, Computer Science</p>
+              <small>Jun 2023 — Jun 2026</small>
+            </div>
+            <div className="education-entry">
+              <h3>Highgate School</h3>
+              <p>
+                A levels: Maths, Further Maths, Design & Technology, Physics
+              </p>
+              <small>Apr 2021 — Apr 2023</small>
+            </div>
+            <h2 style={{ marginTop: 30 }}>Selected marks</h2>
+            <ul className="award-list">
+              <li>
+                <strong>85% — Dissertation</strong>
+              </li>
+              <li>
+                <strong>87% — Maths in Computer Science</strong>
+              </li>
+              <li>
+                <strong>88% — Computer Systems A/B</strong>
+                <span>Concurrency</span>
+              </li>
+            </ul>
+          </section>
+          <section>
+            <h2>Awards & recognition</h2>
+            <ul className="award-list">
+              <li>
+                <strong>Best AI/ML Dissertation</strong>
+                <span>University of Bristol</span>
+              </li>
+              <li>
+                <strong>Best Software Engineering Project</strong>
+                <span>University of Bristol</span>
+              </li>
+              <li>
+                <strong>Arkwright Engineering Scholar</strong>
+              </li>
+              <li>
+                <strong>Brishack 2025 winner</strong>
+                <span>EcoBot / smart modular farming</span>
+              </li>
+              <li>
+                <strong>Highest programming score at VEX Worlds</strong>
+                <span>Alongside regional and national robotics awards</span>
+              </li>
+              <li>
+                <strong>Consistent UKMT Gold awards</strong>
+              </li>
+              <li>
+                <strong>Top percentile — British Informatics Olympiad</strong>
+              </li>
+            </ul>
+          </section>
+        </div>
+        <h2 className="bio-section-title">Tools I work with</h2>
+        <p className="skills-line">
+          Python · ROS 2 · Computer vision · SDXL / LoRA · React · Tone.js ·
+          Django · Praat · Librosa · CAD · Motion control
+        </p>
+        <Link className="bio-contact" to="/contact">
+          Let’s talk ↗
+        </Link>
+        <footer className="portfolio-footer" style={{ marginTop: 45 }}>
+          <span>Arav Raja / London</span>
+          <div>
+            <a
+              href="https://github.com/AravRaja"
+              target="_blank"
+              rel="noreferrer"
+            >
+              GitHub ↗
+            </a>
+            <a
+              href="https://www.linkedin.com/in/arav-raja-73833a355/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              LinkedIn ↗
+            </a>
+            <a href="mailto:aravraja8@gmail.com">Email ↗</a>
+          </div>
+        </footer>
       </div>
     </main>
   );
