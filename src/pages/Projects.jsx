@@ -1,282 +1,190 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import './Projects.css';
+import { useEffect, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { projects } from "../data/portfolio";
+import "./Portfolio.css";
 
-
-
-const projects = [
-  {
-    id: "music-recs",
-    title: "Music Recommendations",
-    subtitle: "Neural Networks",
-    genre: "AI/ML",
-    year: "2024",
-    startDate: "2024-01-15",
-    endDate: "ongoing",
-    color: "#/",
-    accentColor: "#FF8E8E",
-    albumTitle: "Neural",
-    technologies: ["Python", "TensorFlow", "Pandas", "Spotify API"],
-    description: "An intelligent music recommendation system using neural networks to analyze user listening patterns and suggest personalized playlists.",
-    challenges: "Handling sparse user data and cold start problems while maintaining recommendation diversity and accuracy.",
-    github: "https://github.com/aravraja/music-recommendations",
-    demo: "#",
-    image: "/music-suggestion.png"
-  },
-  {
-    id: "portfolio",
-    title: "Interactive Portfolio",
-    subtitle: "3D Experience",
-    genre: "Web Dev",
-    year: "2024",
-    startDate: "2024-08-01",
-    endDate: "2024-12-15",
-    color: "#4ECDC4",
-    accentColor: "#6ED5CD",
-    albumTitle: "Interactive",
-    technologies: ["React", "Three.js", "Vite", "CSS3"],
-    description: "A retro-futuristic portfolio featuring 3D animations, interactive DJ model, and immersive user experience with neon aesthetics.",
-    challenges: "Optimizing 3D performance across devices while maintaining smooth animations and responsive design.",
-    github: "https://github.com/aravraja/portfolio",
-    demo: "#",
-    image: "/music-suggestion.png"
-  },
-  {
-    id: "blockchain-voting",
-    title: "Blockchain Voting",
-    subtitle: "Decentralized Democracy",
-    genre: "Blockchain",
-    year: "2023",
-    startDate: "2023-09-10",
-    endDate: "2024-01-20",
-    color: "#45B7D1",
-    accentColor: "#67C3D6",
-    albumTitle: "Blockchain",
-    technologies: ["Solidity", "Web3.js", "React", "Ethereum"],
-    description: "Secure, transparent voting system built on Ethereum blockchain with smart contracts ensuring immutable vote records.",
-    challenges: "Gas optimization and ensuring voter privacy while maintaining transparency and auditability.",
-    github: "https://github.com/aravraja/blockchain-voting",
-    demo: "#",
-    image: "/music-suggestion.png"
-  },
-  {
-    id: "ai-chatbot",
-    title: "AI Customer Support",
-    subtitle: "Intelligent Assistant",
-    genre: "AI/NLP",
-    year: "2023",
-    startDate: "2023-03-12",
-    endDate: "2023-07-28",
-    color: "#96CEB4",
-    accentColor: "#A8D4C0",
-    albumTitle: "AI",
-    technologies: ["Python", "OpenAI API", "FastAPI", "PostgreSQL"],
-    description: "Intelligent chatbot with natural language processing for customer support, featuring context awareness and learning capabilities.",
-    challenges: "Maintaining conversation context and handling edge cases while ensuring response accuracy and speed.",
-    github: "https://github.com/aravraja/ai-chatbot",
-    demo: "#",
-    image: "/music-suggestion.png"
-  },
-  {
-    id: "data-viz",
-    title: "Data Visualization",
-    subtitle: "Interactive Dashboards",
-    genre: "Data Science",
-    year: "2023",
-    startDate: "2023-05-20",
-    endDate: "2023-11-15",
-    color: "#FFEAA7",
-    accentColor: "#FDCB6E",
-    albumTitle: "Data",
-    technologies: ["D3.js", "Python", "Pandas", "Flask"],
-    description: "Interactive data visualization platform for exploring complex datasets with real-time filtering and dynamic chart generation.",
-    challenges: "Handling large datasets efficiently while maintaining smooth interactions and responsive visualizations.",
-    github: "https://github.com/aravraja/data-viz",
-    demo: "#",
-    image: "/music-suggestion.png"
-  },
-  {
-    id: "mobile-game",
-    title: "Mobile Puzzle Game",
-    subtitle: "Retro Arcade",
-    genre: "Game Dev",
-    year: "2022",
-    startDate: "2022-06-01",
-    endDate: "2022-12-10",
-    color: "#DDA0DD",
-    accentColor: "#E6B3E6",
-    albumTitle: "Mobile",
-    technologies: ["Unity", "C#", "Mobile SDK", "Firebase"],
-    description: "Retro-style puzzle game with progressive difficulty, leaderboards, and social features for mobile platforms.",
-    challenges: "Optimizing performance for various mobile devices while implementing engaging gameplay mechanics.",
-    github: "https://github.com/aravraja/mobile-game",
-    demo: "#",
-    image: "/music-suggestion.png"
-  }
-];
-
-export default function Projects() {
-  const [selectedProject, setSelectedProject] = useState(null);
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  // Open modal if ?id=<projectId> is present
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const id = params.get('id');
-    if (id) {
-      const match = projects.find(p => p.id === id);
-      if (match) setSelectedProject(match);
-    }
-  }, [location.search]);
-
-  const closeModal = () => {
-    setSelectedProject(null);
-    // Clean up the query param without adding history entries
-    if (location.search.includes('id=')) {
-      navigate('/projects', { replace: true });
-    }
-  };
-
-  const handleLinkClick = (url) => {
-    if (url && url !== '#') window.open(url, '_blank', 'noopener,noreferrer');
-  };
-
+function ExpressionDemo() {
+  const [emotion, setEmotion] = useState("happiness");
+  const [intensity, setIntensity] = useState(4);
   return (
-    <main className="experiences-page">
-      <div className="experiences-container">
-        <div className="experiences-header">
-          <h1 className="experiences-title">[EXPERIENCE TIMELINE]</h1>
-          <p className="experiences-subtitle">MY JOURNEY IN TECH & RESEARCH</p>
+    <section
+      className="emotion-demo"
+      aria-label="Explore facial-expression intensity"
+    >
+      <img
+        src={`/projects/emotions/${emotion}/${intensity}.webp`}
+        alt={`Synthetic face: ${emotion}, intensity ${intensity} of 8`}
+      />
+      <div className="emotion-controls">
+        <label htmlFor="emotion">CHOOSE AN EMOTION</label>
+        <select
+          id="emotion"
+          value={emotion}
+          onChange={(e) => setEmotion(e.target.value)}
+        >
+          {["anger", "sadness", "happiness", "disgust", "fear", "surprise"].map(
+            (value) => (
+              <option key={value} value={value}>
+                {value[0].toUpperCase() + value.slice(1)}
+              </option>
+            ),
+          )}
+        </select>
+        <label htmlFor="intensity">INTENSITY — {intensity} / 8</label>
+        <input
+          id="intensity"
+          type="range"
+          min="1"
+          max="8"
+          value={intensity}
+          onChange={(e) => setIntensity(Number(e.target.value))}
+        />
+        <small>
+          Explore saved outputs from the original research project. These are
+          synthetic faces, not participant photographs.
+        </small>
+      </div>
+    </section>
+  );
+}
+
+function ProjectDialog({ project, onClose }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    const oldOverflow = document.body.style.overflow;
+    dialog.showModal();
+    document.body.style.overflow = "hidden";
+    return () => {
+      dialog.close();
+      document.body.style.overflow = oldOverflow;
+    };
+  }, []);
+  return (
+    <dialog
+      className="case-dialog"
+      ref={ref}
+      aria-labelledby="case-title"
+      onCancel={onClose}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <button
+        className="case-close"
+        aria-label="Close project"
+        onClick={onClose}
+      >
+        <span aria-hidden="true">×</span>
+      </button>
+      <figure className="case-hero">
+        <img src={project.image} alt={project.imageAlt} />
+        {project.caption && <figcaption>{project.caption}</figcaption>}
+      </figure>
+      <div className="case-body">
+        <div className="portfolio-kicker">
+          {project.category} / {project.period}
         </div>
-
-
-        <div className="vinyl-collection">
-          {projects.slice(0,6).map((project, index) => (
-            <div 
-              key={project.id}
-              className="vinyl-cover"
-              style={{
-                '--project-color': project.color,
-                '--project-accent': project.accentColor,
-                '--project-image': `url(${project.image})`,
-                animationDelay: `${index * 0.2}s`
-              }}
-              onClick={() => {
-                setSelectedProject(project);
-                navigate(`/projects?id=${project.id}`, { replace: true });
-              }}
-            >
-              <div className="album-cover">
-                <div className="cover-art">
-                  <div className="vinyl-disc">
-                    <img className="center-label" src={project.image} alt={project.title}></img>
-                    <div className="vinyl-grooves"></div>
-                    <svg viewBox="0 0 100 100" width="100%" height="100%" style={{position: 'absolute', top: 0, left: 0, zIndex: 5}}>                
-                      <defs>
-                        {/* Top semicircle arc centered at 50,50 with 35 unit radius (70% of 50) */}
-                        <path id="topArc" d="M 15,55 A 30,30 0 0,1 85,55" />
-                        {/* Bottom semicircle arc centered at 50,50 with 35 unit radius */}
-                        <path id="bottomArc" d="M 85,50 A 35,35 0 0,1 15,50" />
-                      </defs>
-
-                      <text fontSize="6" fill="white" fontFamily="IBM Plex Mono, monospace" fontWeight="500">
-                        <textPath href="#topArc" startOffset="50%" textAnchor="middle">
-                          {project.title.toUpperCase()}
-                        </textPath>
-                      </text>
-
-                      <text fontSize="5" fill="white" fontFamily="IBM Plex Mono, monospace" fontWeight="400" style={{ transform: 'rotate(-180deg)', transformOrigin: '50px 85px' }} >
-                        <textPath href="#bottomArc" startOffset="50%" textAnchor="middle">
-                          {project.year}
-                        </textPath>
-                      </text>
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
+        <h2 id="case-title">{project.title}</h2>
+        <p>{project.subtitle}</p>
+        <div className="case-tags">
+          {project.technologies.map((t) => (
+            <span key={t}>{t}</span>
           ))}
         </div>
-      </div>
-
-        {selectedProject && (
-          <div className="experience-modal-overlay" onClick={closeModal}>
-            <div className="experience-modal-content" onClick={e => e.stopPropagation()}>
-              <button 
-                className="modal-close-button"
-                onClick={closeModal}
-                aria-label="Close modal"
+        <p>{project.description}</p>
+        <h3>The work</h3>
+        <p>{project.detail}</p>
+        <h3>Highlights</h3>
+        <ul>
+          {project.highlights.map((h) => (
+            <li key={h}>{h}</li>
+          ))}
+        </ul>
+        {project.interactive && <ExpressionDemo />}
+        {project.gallery?.map((g) => (
+          <figure className="case-gallery" key={g.image}>
+            <img loading="lazy" src={g.image} alt={g.caption} />
+            <figcaption>{g.caption}</figcaption>
+          </figure>
+        ))}
+        {project.links.length > 0 && (
+          <div className="case-links">
+            {project.links.map((l) => (
+              <a
+                key={l.url}
+                href={l.url}
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                ×
-              </button>
-              
-              <div className="modal-header">
-                <div className="modal-image-container">
-                  <img 
-                    src={selectedProject.image} 
-                    alt={selectedProject.title}
-                    className="modal-image"
-                  />
-                </div>
-                <div className="modal-title-section">
-                  <h2 className="modal-title">{selectedProject.title}</h2>
-                  <h3 className="modal-company">{selectedProject.subtitle}</h3>
-                  <span className="modal-period">{selectedProject.year}</span>
-                </div>
-              </div>
-
-              <div className="modal-body">
-                <div className="modal-section">
-                  <h4 className="modal-section-title">[OVERVIEW]</h4>
-                  <p className="modal-description">{selectedProject.description}</p>
-                </div>
-
-                <div className="modal-section">
-                  <h4 className="modal-section-title">[CHALLENGES]</h4>
-                  <p className="modal-description">{selectedProject.challenges}</p>
-                </div>
-
-                <div className="modal-section">
-                  <h4 className="modal-section-title">[TECHNOLOGIES]</h4>
-                  <div className="modal-technologies">
-                    {selectedProject.technologies.map((tech, i) => (
-                      <span key={i} className="modal-tech-tag">{tech}</span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="modal-section">
-                  <h4 className="modal-section-title">[LINKS]</h4>
-                  <div className="modal-actions">
-                    {selectedProject.github && (
-                      <button 
-                        className="action-button github-button"
-                        onClick={() => handleLinkClick(selectedProject.github)}
-                        aria-label={`View ${selectedProject.title} on GitHub`}
-                      >
-                        <span className="button-icon">📁</span>
-                        GitHub
-                      </button>
-                    )}
-                    {selectedProject.demo && (
-                      <button 
-                        className="action-button demo-button"
-                        onClick={() => handleLinkClick(selectedProject.demo)}
-                        aria-label={`View ${selectedProject.title} demo`}
-                      >
-                        <span className="button-icon">🚀</span>
-                        Demo
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+                {l.label} ↗
+              </a>
+            ))}
           </div>
         )}
+      </div>
+    </dialog>
+  );
+}
 
-      
+export default function Projects() {
+  const [params, setParams] = useSearchParams();
+  const project = projects.find((p) => p.id === params.get("id"));
+  const close = () => setParams({}, { replace: true });
+  return (
+    <main className="portfolio-page">
+      <div className="portfolio-inner">
+        <p className="portfolio-kicker">Arav Raja / Selected work</p>
+        <h1 className="portfolio-heading">Things I’ve built.</h1>
+        <p className="portfolio-intro">
+          Robots, research and music software. A collection of projects that
+          started with an idea I wanted to make real.
+        </p>
+        <div className="portfolio-rule">
+          <span>THE COLLECTION / 6 PROJECTS</span>
+          <span>SELECT A SLEEVE TO EXPLORE ↗</span>
+        </div>
+        <div className="project-shelf">
+          {projects.map((p, i) => (
+            <button
+              className="project-record"
+              key={p.id}
+              onClick={() => setParams({ id: p.id })}
+              aria-label={`Explore ${p.title}`}
+            >
+              <div className="record-sleeve">
+                <span className="record-number">
+                  AR / {String(i + 1).padStart(2, "0")}
+                </span>
+                <img
+                  src={p.image}
+                  alt={p.imageAlt}
+                  loading={i < 3 ? "eager" : "lazy"}
+                />
+                <span className="record-open" aria-hidden="true">
+                  ↗
+                </span>
+              </div>
+              <div className="record-meta">
+                <span>{p.category}</span>
+                <span>{p.period}</span>
+              </div>
+              <h2>{p.title}</h2>
+              <p>{p.summary}</p>
+            </button>
+          ))}
+        </div>
+        <footer className="portfolio-footer">
+          <span>Built with curiosity. And a lot of iteration.</span>
+          <div>
+            <Link to="/experience">Experience ↗</Link>
+            <Link to="/contact">Get in touch ↗</Link>
+          </div>
+        </footer>
+      </div>
+      {project && (
+        <ProjectDialog key={project.id} project={project} onClose={close} />
+      )}
     </main>
   );
 }

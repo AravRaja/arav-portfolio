@@ -9,6 +9,7 @@
   --border-color: rgb(0, 0, 0);
   --stroke-color: rgb(255, 55, 0);
   --pressed-glow-color: rgba(203, 11, 11, 0);
+  --armed-red: rgb(255, 30, 20);
 }
 
 /* Center the space bar at the bottom */
@@ -84,7 +85,7 @@ svg#rectangle {
   rx: var(--border-radius);
   ry: var(--border-radius);
   stroke-dasharray: 460;
-  transition: stroke-dashoffset 3.2s cubic-bezier(0, 0, 1, 1);
+  transition: stroke-dashoffset var(--hold-seconds, 3.2s) cubic-bezier(0, 0, 1, 1);
 }
 
 /* Default (up) position */
@@ -102,7 +103,7 @@ svg#rectangle {
 svg#rectangle.space-up #stroke-top,
 svg#rectangle.space-up #stroke-bottom {
   stroke-dashoffset: 460;
-  transition: stroke-dashoffset 2.9s cubic-bezier(0, 0, 1, 1);
+  transition: stroke-dashoffset var(--drain-seconds, 2.9s) cubic-bezier(0, 0, 1, 1);
 }
 
 /* Stroke dashoffset for down state + glow */
@@ -126,9 +127,26 @@ svg#rectangle.space-down #stroke-bottom {
   opacity: 1;
 }
 
-/* Activated state: orange text and strong glow */
+/* Bar full and still held: glow red, hinting to let go (the deck does the pulsing) */
+svg#rectangle.space-armed #stroke-top,
+svg#rectangle.space-armed #stroke-bottom {
+  stroke: var(--armed-red);
+}
+
+svg#rectangle.space-armed,
+svg#rectangle.space-down-active {
+  filter: drop-shadow(0 0 8px rgba(255, 30, 20, 0.8));
+}
+
+/* After the drop: pressed down, glowing red outline and red text */
+svg#rectangle.space-down-active #stroke-top,
+svg#rectangle.space-down-active #stroke-bottom,
+svg#rectangle.space-down-active #base-stroke {
+  stroke: var(--armed-red);
+}
+
 svg#rectangle.space-down-active text {
-  fill: rgb(255, 0, 0);
+  fill: var(--armed-red);
 }
 
 

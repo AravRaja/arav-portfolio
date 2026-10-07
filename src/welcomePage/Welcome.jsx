@@ -9,6 +9,8 @@ import { useZoomAndNavigate } from '../hooks/useZoomAndNavigate.js';
 export default function Welcome() {
   const [animation, setAnimation] = useState(ANIMATION.IDLE);
   const [zoomTrigger, setZoomTrigger] = useState(0);
+  // Music stage: after the drop the camera zooms into the deck and the page turns blue
+  const [stageZoom, setStageZoom] = useState(null);
   const navigate = useNavigate();
 
   const startZoom = useCallback(() => {
@@ -42,20 +44,36 @@ export default function Welcome() {
     return () => window.removeEventListener('welcome-header-nav', handler);
   }, [zoomThenNavigate]);
 
+  useEffect(() => {
+    const handler = (e) => setStageZoom({ inward: e.detail.inward, seconds: e.detail.seconds });
+    window.addEventListener('dj-stage', handler);
+    return () => window.removeEventListener('dj-stage', handler);
+  }, []);
+
+  // Dispatch animation state changes to Header for audio control
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('animation-state-change', { 
+      detail: { state: animation } 
+    }));
+  }, [animation]);
+
   return (
-    <section className="welcome-container">
+    <section
+      className={`welcome-container ${stageZoom?.inward ? 'music-stage' : ''}`}
+      style={{ '--stage-seconds': `${stageZoom?.seconds ?? 0.7}s` }}
+    >
       <div className="welcome-header-row">
         <div className="welcome-left">
           <p className="intro-heading">
-            DEV/MAKER<br />
-            SPECIALISING IN ML & AUDIO TECH<br />
+            FOUNDER / ENGINEER<br />
+            ROBOTICS, ML & MUSIC<br />
           </p>
         </div>
 
         <div className="welcome-right">
-          <div className="label-block">[UNIVERSITY OF BRISTOL CS]</div>
+          <div className="label-block">[CO-FOUNDER & CEO / BZZD]</div>
           <div className="label-block">[BASED IN LONDON]</div>
-          <div className="label-block">[AGE 20]</div>
+          <div className="label-block">[BRISTOL CS / 2026]</div>
         </div>
       </div>
       
@@ -65,6 +83,7 @@ export default function Welcome() {
         ANIMATION={ANIMATION}
         onActivate={handleActivate}
         zoomTrigger={zoomTrigger}
+        stageZoom={stageZoom}
       />
       
       <SpaceButton
@@ -74,21 +93,21 @@ export default function Welcome() {
       />
       
       <div className="project-info">
-        <img src="/music-suggestion.png" alt="Music Suggestion Illustration" style={{ width: '100%', borderRadius: '6px', marginBottom: '10px' }} />
+        <img src="/projects/bzzd-prototype.webp" alt="bzzd haircutting prototype" style={{ width: '100%', borderRadius: '6px', marginBottom: '10px' }} />
         <div>
-          Music Recommendations with <strong>Interaction-Aware Neural Nets</strong>
+          <strong>bzzd</strong><br />Autonomous barber stations.
         </div>
         <div style={{ marginTop: '8px' }}>
           <a
-            href="/projects?id=music-recs"
+            href="/projects?id=bzzd"
             className="see-more-link"
             onClick={(e) => {
               console.log("See more clicked")
               e.preventDefault();
               if (typeof zoomThenNavigate === 'function') {
-                zoomThenNavigate('/projects?id=music-recs');
+                zoomThenNavigate('/projects?id=bzzd');
               } else {
-                window.location.href = '/projects?id=music-recs';
+                window.location.href = '/projects?id=bzzd';
               }
             }}
           >

@@ -1,10 +1,26 @@
 import { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useDerivedConfig } from '../animation/config.js';
+import { stepUp, stepDown, remainingUpSeconds, remainingDownSeconds } from '../animation/holdStep.js';
+import { holdSync } from '../audio/holdSync.js';
 
 export function useDJAnimation({ refs, animation, setAnimation, ANIMATION, mouse }) {
   const rotationSpeedRef = useRef(0);
   const config = useDerivedConfig();
+
+  const readHoldState = () => ({
+    speed: rotationSpeedRef.current,
+    lZ: refs.tonebarLeft.current?.rotation.z ?? config.START_TONEBAR_LEFT_Z,
+    lY: refs.tonebarLeft.current?.rotation.y ?? config.START_TONEBAR_LEFT_Y,
+    rZ: refs.tonebarRight.current?.rotation.z ?? config.START_TONEBAR_RIGHT_Z,
+    rY: refs.tonebarRight.current?.rotation.y ?? config.START_TONEBAR_RIGHT_Y,
+  });
+
+  // Let the space hold know how long the deck still needs from wherever it is now.
+  useEffect(() => {
+    holdSync.estimateRemaining = () => remainingUpSeconds(readHoldState(), config);
+    holdSync.estimateDrain = () => remainingDownSeconds(readHoldState(), config);
+  });
 
   // Initialize positions on mount
   useEffect(() => {
@@ -29,6 +45,7 @@ export function useDJAnimation({ refs, animation, setAnimation, ANIMATION, mouse
 
   useFrame((state, delta) => {
     // === UP ANIMATION: Spin up vinyls first, then move tonebars ===
+    // Runs at holdSync.speed so the hold completes on the bar the music chose.
     if (animation === ANIMATION.UP) {
       if (
         refs.tonebarLeft.current &&
@@ -36,65 +53,21 @@ export function useDJAnimation({ refs, animation, setAnimation, ANIMATION, mouse
         refs.vinylLeft.current &&
         refs.vinylRight.current
       ) {
-        // 1. Spin up the vinyls first
-        if (rotationSpeedRef.current < config.MAX_VINYL_SPEED_PER_SEC) {
-          const speed_per_sec = rotationSpeedRef.current;
-          const accel_per_sec = (config.VINYL_ACCEL_BASE + config.VINYL_ACCEL_SCALE * (speed_per_sec / config.MAX_VINYL_SPEED_PER_SEC));
-          rotationSpeedRef.current = Math.min(speed_per_sec + accel_per_sec * delta, config.MAX_VINYL_SPEED_PER_SEC);
-          refs.vinylLeft.current.rotation.y += rotationSpeedRef.current * delta;
-          refs.vinylRight.current.rotation.y += rotationSpeedRef.current * delta;
-        }
-        // 2. After vinyls are at max speed, move tonebars (Z up → Y up → Z final)
-        else {
-          refs.vinylLeft.current.rotation.y += config.MAX_VINYL_SPEED_PER_SEC * delta;
-          refs.vinylRight.current.rotation.y += config.MAX_VINYL_SPEED_PER_SEC * delta;
-          // Move tonebars through Z up → Y up → Z final sequence (as before)
-          const leftZDone = refs.tonebarLeft.current.rotation.z >= config.HIGH_TONEBAR_LEFT_Z;
-          const rightZDone = refs.tonebarRight.current.rotation.z <= config.HIGH_TONEBAR_RIGHT_Z;
-          const inInitialPhase = refs.tonebarLeft.current.rotation.y <= config.START_TONEBAR_LEFT_Y;
-          if (inInitialPhase && (!leftZDone || !rightZDone)) {
-            refs.tonebarLeft.current.rotation.z = Math.min(
-              refs.tonebarLeft.current.rotation.z + config.TONEBAR_SPEED * delta * 60,
-              config.HIGH_TONEBAR_LEFT_Z
-            );
-            refs.tonebarRight.current.rotation.z = Math.max(
-              refs.tonebarRight.current.rotation.z - (config.TONEBAR_SPEED * config.LEFT_RIGHT_SF * delta * 60),
-              config.HIGH_TONEBAR_RIGHT_Z
-            );
-          } else {
-            const leftYDone = refs.tonebarLeft.current.rotation.y >= config.HIGH_TONEBAR_LEFT_Y;
-            const rightYDone = refs.tonebarRight.current.rotation.y <= config.HIGH_TONEBAR_RIGHT_Y;
-            if (!leftYDone || !rightYDone) {
-              refs.tonebarLeft.current.rotation.y = Math.min(
-                refs.tonebarLeft.current.rotation.y + config.TONEBAR_SPEED * delta * 60,
-                config.HIGH_TONEBAR_LEFT_Y
-              );
-              refs.tonebarRight.current.rotation.y = Math.max(
-                refs.tonebarRight.current.rotation.y - config.TONEBAR_SPEED * delta * 60,
-                config.HIGH_TONEBAR_RIGHT_Y
-              );
-            } else {
-              const leftFinalZDone = refs.tonebarLeft.current.rotation.z <= config.FINAL_TONEBAR_LEFT_Z;
-              const rightFinalZDone = refs.tonebarRight.current.rotation.z >= config.FINAL_TONEBAR_RIGHT_Z;
-              if (!leftFinalZDone || !rightFinalZDone) {
-                refs.tonebarLeft.current.rotation.z = Math.max(
-                  refs.tonebarLeft.current.rotation.z - config.TONEBAR_SPEED * delta * 60,
-                  config.FINAL_TONEBAR_LEFT_Z
-                );
-                refs.tonebarRight.current.rotation.z = Math.min(
-                  refs.tonebarRight.current.rotation.z + (config.TONEBAR_SPEED * config.LEFT_RIGHT_SF * delta * 60),
-                  config.FINAL_TONEBAR_RIGHT_Z
-                );
-              } else {
-                // When both vinyls at max speed AND tonebars finished, set to RUNNING
-                setAnimation(ANIMATION.RUNNING);
-              }
-            }
-          }
-        }
+        const s = readHoldState();
+        const { spin, done } = stepUp(s, delta * holdSync.speed, config);
+        rotationSpeedRef.current = s.speed;
+        refs.tonebarLeft.current.rotation.z = s.lZ;
+        refs.tonebarLeft.current.rotation.y = s.lY;
+        refs.tonebarRight.current.rotation.z = s.rZ;
+        refs.tonebarRight.current.rotation.y = s.rY;
+        refs.vinylLeft.current.rotation.y += spin;
+        refs.vinylRight.current.rotation.y += spin;
+        // When both vinyls at max speed AND tonebars finished, set to RUNNING
+        if (done) setAnimation(ANIMATION.RUNNING);
       }
     }
     // === DOWN ANIMATION: Move tonebars back, then decelerate vinyls ===
+    // Runs at holdSync.drainSpeed so it empties in step with the space bar and the fade.
     else if (animation === ANIMATION.DOWN) {
       if (
         refs.tonebarLeft.current &&
@@ -102,53 +75,17 @@ export function useDJAnimation({ refs, animation, setAnimation, ANIMATION, mouse
         refs.vinylLeft.current &&
         refs.vinylRight.current
       ) {
-        // 1. Move tonebars back to start (Y then Z)
-        const leftYResetDone = refs.tonebarLeft.current.rotation.y <= config.START_TONEBAR_LEFT_Y;
-        const rightYResetDone = refs.tonebarRight.current.rotation.y >= config.START_TONEBAR_RIGHT_Y;
-        if (!leftYResetDone || !rightYResetDone) {
-          refs.tonebarLeft.current.rotation.y = Math.max(
-            refs.tonebarLeft.current.rotation.y - config.TONEBAR_SPEED * delta * 60,
-            config.START_TONEBAR_LEFT_Y
-          );
-          refs.tonebarRight.current.rotation.y = Math.min(
-            refs.tonebarRight.current.rotation.y + config.TONEBAR_SPEED * delta * 60,
-            config.START_TONEBAR_RIGHT_Y
-          );
-          if(rotationSpeedRef.current > 0){
-            refs.vinylLeft.current.rotation.y += rotationSpeedRef.current * delta;
-            refs.vinylRight.current.rotation.y += rotationSpeedRef.current * delta;
-          }
-        } else {
-          const leftZResetDone = refs.tonebarLeft.current.rotation.z <= config.START_TONEBAR_LEFT_Z;
-          const rightZResetDone = refs.tonebarRight.current.rotation.z >= config.START_TONEBAR_RIGHT_Z;
-          if (!leftZResetDone || !rightZResetDone) {
-            refs.tonebarLeft.current.rotation.z = Math.max(
-              refs.tonebarLeft.current.rotation.z - config.TONEBAR_SPEED * delta * 60,
-              config.START_TONEBAR_LEFT_Z
-            );
-            refs.tonebarRight.current.rotation.z = Math.min(
-              refs.tonebarRight.current.rotation.z + (config.TONEBAR_SPEED * config.LEFT_RIGHT_SF * delta * 60),
-              config.START_TONEBAR_RIGHT_Z
-            );
-            if(rotationSpeedRef.current > 0){
-              refs.vinylLeft.current.rotation.y += rotationSpeedRef.current * delta;
-              refs.vinylRight.current.rotation.y += rotationSpeedRef.current * delta;
-            }
-          }
-          // 2. After tonebars are reset, decelerate the vinyls
-          else if (rotationSpeedRef.current > 0) {
-            const speed_per_sec = rotationSpeedRef.current;
-            const decel_per_sec = (config.VINYL_DECEL_BASE + config.VINYL_DECEL_SCALE * (speed_per_sec / config.MAX_VINYL_SPEED_PER_SEC));
-            const next = Math.max(speed_per_sec - decel_per_sec * delta, 0);
-            rotationSpeedRef.current = next;
-            refs.vinylLeft.current.rotation.y += next * delta;
-            refs.vinylRight.current.rotation.y += next * delta;
-          }
-          // 3. When vinyls are stopped AND tonebars reset, go to idle
-          else {
-            setAnimation(ANIMATION.IDLE);
-          }
-        }
+        const s = readHoldState();
+        const { spin, done } = stepDown(s, delta * holdSync.drainSpeed, config);
+        rotationSpeedRef.current = s.speed;
+        refs.tonebarLeft.current.rotation.z = s.lZ;
+        refs.tonebarLeft.current.rotation.y = s.lY;
+        refs.tonebarRight.current.rotation.z = s.rZ;
+        refs.tonebarRight.current.rotation.y = s.rY;
+        refs.vinylLeft.current.rotation.y += spin;
+        refs.vinylRight.current.rotation.y += spin;
+        // When vinyls are stopped AND tonebars reset, go to idle
+        if (done) setAnimation(ANIMATION.IDLE);
       }
     }
     else if (animation === ANIMATION.RUNNING || animation === ANIMATION.RUNNING_ACTIVATED) {

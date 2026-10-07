@@ -4,6 +4,7 @@ import { useCallback } from 'react';
 // Requires: setAnimation, ANIMATION, and a navigate function (from react-router-dom)
 export function useZoomAndNavigate({ setAnimation, ANIMATION, navigate, delayMs = 700, startZoom }) {
   const zoomThenNavigate = useCallback((path) => {
+    window.dispatchEvent(new Event('dj-navigation-start'));
     try {
       // Trigger an existing prominent animation; adjust if you add a dedicated ZOOM state
       if (setAnimation && ANIMATION && ANIMATION.RUNNING_ACTIVATED) {
