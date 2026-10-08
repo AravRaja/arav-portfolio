@@ -12,6 +12,14 @@ const RELEASE = 0.06; // seconds for the line to fall back once a sound has pass
 const KICK_RELEASE = 0.11; // ...and for a kick spike
 const NOISE_MS = 30; // how often the line's texture re-rolls
 const KICK_WIDTH = 0.2; // how wide the kick spike is, as a share of the pill
+// Snares: a sharp burst in the upper mids/highs (~1.7–6kHz). They get their own spike,
+// a bit smaller and sharper than a kick's. A hit landing with a kick counts as the kick.
+const SNARE_RISE = 0.45; // how sharp a rise (as a share of the recent peak) counts as a snare
+const SNARE_GAP = 130; // ms between snares
+const SNARE_FLOOR = 0.0015; // highs scale never shrinks below this
+const SNARE_SIZE = 0.75; // snare spike height relative to a kick
+const SNARE_WIDTH = 0.1; // narrower than a kick
+const SNARE_RELEASE = 0.07; // seconds
 const HUM = 0.03; // flat-line jitter as a fraction of the half-height
 const BASS_FLOOR = 0.015; // bass scale never shrinks below this (the intro's bass peaks ~0.026)
 const MID_REF = 0.008; // mid level that counts as "full" (only reached after the drop)
@@ -56,6 +64,10 @@ const SoundWaveBubble = ({ fft, isPlaying }) => {
 
     let level = 0; // current line height (0..1), instant attack, quick release
     let spike = 0; // current kick spike (0..1)
+    let snare = 0; // current snare spike (0..1)
+    let highPeak = SNARE_FLOOR;
+    let lastSnare = 0;
+    const recentHigh = []; // { t, high } for spotting each snare's attack
     let noise = [];
     let lastNoise = 0;
     let bassPeak = BASS_FLOOR; // adaptive ceiling: the loudest recent kick reaches full height
@@ -68,7 +80,7 @@ const SoundWaveBubble = ({ fft, isPlaying }) => {
     let frame = 0;
 
     const read = (now) => {
-      if (!fft || !isPlaying) return { bass: 0, mid: 0, hit: 0 };
+      if (!fft || !isPlaying) return { bass: 0, mid: 0, hit: 0, snareHit: 0 };
       const values = fft.getValue();
       const bass = (toLinear(values[1]) + toLinear(values[2]) + toLinear(values[3])) / 3; // ~40–170Hz
       let mid = 0;
@@ -83,15 +95,34 @@ const SoundWaveBubble = ({ fft, isPlaying }) => {
         && bass > bassPeak * 0.35
         && now - lastHit > mix(MIN_GAP, openness);
       if (isHit) lastHit = now;
-      return { bass, mid: mid / 52, hit: isHit ? Math.min(1, bass / bassPeak) : 0 };
+
+      let high = 0;
+      for (let i = 40; i < 140; i++) high += toLinear(values[i]); // ~1.7–6kHz
+      high /= 100;
+      recentHigh.push({ t: now, high });
+      while (recentHigh.length && now - recentHigh[0].t > RISE_WINDOW) recentHigh.shift();
+      const highFloor = Math.min(...recentHigh.map((r) => r.high));
+      highPeak = Math.max(high, highPeak * 0.997, SNARE_FLOOR);
+      const isSnare = !isHit
+        && now - lastHit > 40 // landing with a kick: the kick wins
+        && high - highFloor > highPeak * SNARE_RISE
+        && high > highPeak * 0.4
+        && now - lastSnare > SNARE_GAP;
+      if (isSnare) lastSnare = now;
+      return {
+        bass,
+        mid: mid / 52,
+        hit: isHit ? Math.min(1, bass / bassPeak) : 0,
+        snareHit: isSnare ? Math.min(1, high / highPeak) : 0,
+      };
     };
 
     // The whole pill pulses on a kick, harder for harder (and more open) kicks.
-    const pulse = (strength) => {
+    const pulse = (strength, weight = 1) => {
       const pill = canvas.parentElement;
       if (!pill) return;
       const glow = getComputedStyle(pill).getPropertyValue('--pulse-glow').trim() || '0, 0, 0';
-      const scale = 1 + (0.12 + 0.14 * strength) * mix(SIZE, openness);
+      const scale = 1 + (0.12 + 0.14 * strength) * weight * mix(SIZE, openness);
       pill.animate(
         [
           { transform: `scale(${scale})`, boxShadow: `0 0 0 3px rgba(${glow}, 0.55)` },
@@ -103,10 +134,14 @@ const SoundWaveBubble = ({ fft, isPlaying }) => {
 
     const draw = () => {
       const now = performance.now();
-      const { bass, mid, hit } = read(now);
+      const { bass, mid, hit, snareHit } = read(now);
       const dt = Math.min(0.1, (now - lastFrame) / 1000);
       lastFrame = now;
       bassPeak = Math.max(bass, bassPeak * Math.pow(0.5, dt / 4), BASS_FLOOR); // ~4s half-life
+      if (snareHit) {
+        snare = 1;
+        if (holdSync.songActive) pulse(snareHit, 0.5); // a lighter pulse than a kick
+      }
       if (hit) {
         spike = 1;
         if (holdSync.songActive) pulse(hit); // the pill only pulses after the drop; before it, the deck does
@@ -117,6 +152,7 @@ const SoundWaveBubble = ({ fft, isPlaying }) => {
       const midsNow = Math.min(1, mid / MID_REF) * MID_SHARE;
       level = Math.max(Math.min(1, bassNow * 0.9 + midsNow), level * Math.exp(-dt / RELEASE));
       spike *= Math.exp(-dt / KICK_RELEASE);
+      snare *= Math.exp(-dt / SNARE_RELEASE);
       const count = Math.ceil(width / STEP) + 1;
       if (now - lastNoise > NOISE_MS || noise.length !== count) {
         lastNoise = now;
@@ -139,7 +175,10 @@ const SoundWaveBubble = ({ fft, isPlaying }) => {
         // Full height through the middle, easing to a low line at both ends
         const taper = EDGE_LEVEL + (1 - EDGE_LEVEL) * smoothstep(0, 0.3, u) * smoothstep(0, 0.3, 1 - u);
         const body = (HUM + level) * noise[i] * taper * size * half;
-        const kick = spike * Math.exp(-(((u - 0.5) / KICK_WIDTH) ** 2)) * (0.85 + 0.15 * noise[i]) * size * half;
+        const kick = Math.max(
+          spike * Math.exp(-(((u - 0.5) / KICK_WIDTH) ** 2)),
+          snare * SNARE_SIZE * Math.exp(-(((u - 0.5) / SNARE_WIDTH) ** 2)),
+        ) * (0.85 + 0.15 * noise[i]) * size * half;
         if (kick > body && kick > 1) { // symmetric spike, above and below the line at once
           ctx.lineTo(x, cy - kick);
           ctx.lineTo(x, cy + kick);
