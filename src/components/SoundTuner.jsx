@@ -35,6 +35,7 @@ const SECTIONS = [
       { key: 'syncLead', label: 'Finish early by', min: 0, max: 0.3, step: 0.005, unit: 's' },
       { key: 'dropOn', label: 'Drop lands on next', options: ['bar', 'beat'] },
       { key: 'beatsPerBar', label: 'Beats per bar', min: 1, max: 8, step: 1 },
+      { key: 'beatOffset', label: 'Deck pulse offset', min: -0.25, max: 0.25, step: 0.005, unit: 's' },
       { key: 'stageZoomIn', label: 'Zoom-in time', min: 0.1, max: 2, step: 0.05, unit: 's' },
       { key: 'snapSeconds', label: 'Final snap open', min: 0, max: 1.5, step: 0.01, unit: 's' },
     ],
