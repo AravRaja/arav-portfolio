@@ -1,13 +1,15 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, lazy, Suspense } from 'react';
 import Header from './Header'
-import Welcome from './welcomePage/Welcome'
 import "./App.css"
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import Projects from './pages/Projects.jsx'
-import Experience from './pages/Experiences.jsx'
-import Contact from './pages/Contact';
-import ImageBoard from './pages/ImageBoard.jsx'
-import About from './pages/About.jsx'
+
+// Each page loads on demand, so three.js and the 3D deck only download on the home page
+const Welcome = lazy(() => import('./welcomePage/Welcome'))
+const Projects = lazy(() => import('./pages/Projects.jsx'))
+const Experience = lazy(() => import('./pages/Experiences.jsx'))
+const Contact = lazy(() => import('./pages/Contact'))
+const ImageBoard = lazy(() => import('./pages/ImageBoard.jsx'))
+const About = lazy(() => import('./pages/About.jsx'))
 
 export default function App() {
   const { pathname } = useLocation();
@@ -15,6 +17,7 @@ export default function App() {
   return (
     <div style={{ width: '100dvw', height: '100dvh' }}>
       <Header />
+      <Suspense fallback={null}>
       <Routes>
         <Route path="/" element={<Welcome />} />
         <Route path="/projects" element={<Projects />} />
@@ -25,6 +28,7 @@ export default function App() {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
     </div>
   )
 }

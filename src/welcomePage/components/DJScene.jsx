@@ -165,9 +165,25 @@ function DJModel({animation, setAnimation, ANIMATION, onActivate, zoomTrigger, s
 
 
 
+// A full-screen canvas is the page's biggest memory cost. On retina screens the extra pixels
+// already smooth the edges, so skip multisampling there (it multiplies the buffers ~4x).
+const HI_DPI = typeof window !== 'undefined' && window.devicePixelRatio >= 1.5;
+
 export default function DJScene({ animation, setAnimation, ANIMATION, onActivate, zoomTrigger, stageZoom }) {
+  // On the music stage the deck is hidden, so stop drawing it once the zoom-in has finished.
+  // Leaving the stage resumes straight away (with a fresh clock, so the zoom-out doesn't jump).
+  const [paused, setPaused] = useState(false);
+  useEffect(() => {
+    if (!stageZoom?.inward) { setPaused(false); return; }
+    const timer = setTimeout(() => setPaused(true), stageZoom.seconds * 1000 + 100);
+    return () => clearTimeout(timer);
+  }, [stageZoom]);
+
   return (
-    <Canvas camera={{ position: [0, 3, 8], fov: 60 }} 
+    <Canvas camera={{ position: [0, 3, 8], fov: 60 }}
+      frameloop={paused ? 'never' : 'always'}
+      dpr={[1, 2]}
+      gl={{ antialias: !HI_DPI }}
       className="djscene-canvas"
       style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}
       resize={{ scroll: false, debounce: { scroll: 50, resize: 0 } }}
