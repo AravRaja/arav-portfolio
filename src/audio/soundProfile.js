@@ -27,6 +27,7 @@ export const DEFAULT_PROFILE = {
   syncLead: 0.06, // complete this many seconds before the hit point (absorbs frame lag)
   dropOn: 'bar', // on let go, the drop hit waits for the loop's next 'bar' (or 'beat')
   beatsPerBar: 4,
+  beatOffset: 0, // seconds to shift the deck's beat pulse against the intro's beats
   stageZoomIn: 0.7, // seconds for the zoom into the blue music stage on let go (page buttons use 0.7)
   snapSeconds: 0.06, // filter snaps fully open this fast on completion
 
