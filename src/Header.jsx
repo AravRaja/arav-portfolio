@@ -29,7 +29,8 @@ export default function Header() {
   const onHome = location.pathname === '/';
   // On the music stage (after the drop) the home page becomes a blue page like About
   const [onStage, setOnStage] = useState(false);
-  const isBlue = !onHome || onStage;
+  const [stageSeconds, setStageSeconds] = useState(null); // header fade time while the stage changes
+  const isBlue = !onHome;
   const showTuner = import.meta.env.DEV || new URLSearchParams(location.search).has('tune');
   const [isPlaying, setIsPlaying] = useState(false);
   const muted = useMuted();
@@ -91,11 +92,14 @@ export default function Header() {
       anchor = { time: time + 0.01, offset };
     };
     // The camera zooms into the deck and the page becomes the blue music stage (or back out).
-    // The header flips back to white halfway through the zoom-out, as the blue fades.
+    // The header stays transparent and fades its text to white (or back) over the same time.
+    let staged = false; // whether this player has put the page on the music stage
     const stage = (inward, seconds) => {
+      staged = inward;
       clearTimeout(stageTimer);
-      if (inward) setOnStage(true);
-      else stageTimer = setTimeout(() => setOnStage(false), seconds * 500);
+      setStageSeconds(seconds);
+      setOnStage(inward);
+      stageTimer = setTimeout(() => setStageSeconds(null), seconds * 1000); // back to snappy hovers
       window.dispatchEvent(new CustomEvent('dj-stage', { detail: { inward, seconds } }));
     };
     // Land the drop hit on the loop's next bar (or beat), never mid-beat.
@@ -169,7 +173,9 @@ export default function Header() {
       if (released) {
         if (dropped) {
           if (song !== 'on') {
+            // Caught the song again with a full hold: back onto the music stage
             clearTimeout(fadeTimer);
+            if (!staged) stage(true, P.stageZoomIn);
             song = 'on';
             sweep(true, P.snapSeconds, 1);
             shapedRamp(level.gain, P.songLevel, P.snapSeconds);
@@ -188,7 +194,8 @@ export default function Header() {
           clearTimeout(fadeTimer);
           song = 'reviving';
           const seconds = holdSeconds ?? 3;
-          stage(true, P.stageZoomIn);
+          // The page only zooms back into the stage once this hold fills the bar, so a tap
+          // while the song fades doesn't bounce it back to blue
           sweep(true, seconds, P.buildCurve);
           shapedRamp(level.gain, P.songLevel, seconds, P.buildCurve);
         } else if (song !== 'fading') {
@@ -212,15 +219,20 @@ export default function Header() {
         shapedRamp(level.gain, P.buildLevel, seconds, P.buildCurve);
       } else {
         release();
+        // No song is playing, so the page must not be left on the blue stage
+        if (staged) stage(false, drainSeconds ?? 0.6);
       }
     };
     holdSync.pickDrain = (natural) => natural / P.drainSpeed;
     // Where the listener is within the current beat (on the same grid the drop lands on)
+    // Where the listener is within the current beat of the intro loop. The intro's beats
+    // land on the loop's bar line (plus beatOffset), measured from the audio.
     holdSync.beatPhase = () => {
       if (!started || dropped || player.state !== 'started') return null;
       const latency = Tone.getContext().rawContext.outputLatency || 0;
       const beat = (P.loopEnd - P.loopStart) / P.beatsPerBar;
-      return 1 - (untilHitPoint(ctxNow() - latency) % beat) / beat;
+      const intoLoop = loopPosition(ctxNow() - latency) - P.loopStart - P.beatOffset;
+      return (((intoLoop % beat) + beat) % beat) / beat;
     };
     // Where the song is (seconds into the mp3) as it is heard right now, for visuals that dance to it: the intro loop's
     // position before the drop hit, then the song's (through 'fading' and 'reviving'; it never loses its place). Uses
@@ -281,6 +293,8 @@ export default function Header() {
     document.addEventListener('visibilitychange', applyOutput);
     // Returning to home after audio was already unlocked: resume the loop straight away.
     if (Tone.getContext().state === 'running') begin();
+    // A fresh player starts on the normal page, even if an earlier one left it on the stage
+    window.dispatchEvent(new CustomEvent('dj-stage', { detail: { inward: false, seconds: 0.6 } }));
     return () => {
       shutdown();
       unsubscribe();
@@ -318,7 +332,7 @@ export default function Header() {
     // Set theme color to match header background
     addMetaTag(
       'theme-color',
-      isBlue ? 'rgb(1, 23, 213)' : 'rgb(255, 255, 255)'
+      isBlue || onStage ? 'rgb(1, 23, 213)' : 'rgb(255, 255, 255)'
     );
     addMetaTag('apple-mobile-web-app-capable', 'yes');
     addMetaTag('apple-mobile-web-app-status-bar-style', 'black-translucent');
@@ -328,10 +342,13 @@ export default function Header() {
     if (viewport) {
       viewport.content = 'width=device-width, initial-scale=1, viewport-fit=cover';
     }
-  }, [isBlue]);
+  }, [isBlue, onStage]);
   return (
     <>
-      <header className={`site-header ${isBlue ? 'blue' : ''}`}>
+      <header
+        className={`site-header ${isBlue ? 'blue' : ''} ${onHome && onStage ? 'stage' : ''}`}
+        style={stageSeconds ? { '--stage-seconds': `${stageSeconds}s` } : undefined}
+      >
         <Link to="/" className="left-name"><span className="nav-link-highlight">ARAV.RAJA</span></Link>
         <div className="centre"> 
           <nav className="nav-links">

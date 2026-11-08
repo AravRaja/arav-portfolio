@@ -15,12 +15,21 @@
   font-weight: 600;
   font-size: 16px;
   z-index: 2000;
+  /* --stage-seconds is set while the music stage fades in/out, so the header follows it */
+  transition: color var(--stage-seconds, 0.3s) ease, border-color var(--stage-seconds, 0.3s) ease;
 }
 
 /* Blue variant used on non-home routes */
 .site-header.blue {
   background-color: #0117d5;
   border-bottom: 1px solid #ffffff;
+  color: white;
+}
+
+/* Music stage on the home page: stays transparent (the blue page shows through from
+   behind) and the header's text and controls fade to white with it */
+.site-header.stage {
+  border-bottom-color: #ffffff;
   color: white;
 }
 
@@ -42,13 +51,16 @@
 .left-name {
   letter-spacing: 1px;
   color: black;
+  transition: color var(--stage-seconds, 0.3s) ease;
 }
 
-.site-header.blue .left-name {
+.site-header.blue .left-name,
+.site-header.stage .left-name {
   color: white;
 }
 
-.site-header.blue .left-name:hover {
+.site-header.blue .left-name:hover,
+.site-header.stage .left-name:hover {
   color: #0117d5;
 }
 
@@ -65,10 +77,12 @@
   text-decoration: none;
   letter-spacing: 1px;
   font-weight: bolder;
+  transition: color var(--stage-seconds, 0.3s) ease;
 }
 
 /* Ensure readable link color on blue header */
-.site-header.blue .nav-links a {
+.site-header.blue .nav-links a,
+.site-header.stage .nav-links a {
   color: white;
 }
 
@@ -85,11 +99,12 @@
   width: 88px;
   height: 34px;
   flex-shrink: 0;
-  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  transition: background var(--stage-seconds, 0.3s) ease, color var(--stage-seconds, 0.3s) ease, border-color var(--stage-seconds, 0.3s) ease;
 }
 
 /* On blue pages the controls become white outlines, like the rest of the header */
-.site-header.blue .time-bubble {
+.site-header.blue .time-bubble,
+.site-header.stage .time-bubble {
   --pulse-glow: 255, 255, 255;
   background: transparent;
   border-color: #fff;
@@ -114,7 +129,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: background var(--stage-seconds, 0.2s) ease, color var(--stage-seconds, 0.2s) ease, border-color var(--stage-seconds, 0.2s) ease;
 }
 
 .mute-button svg {
@@ -137,14 +152,17 @@
   color: #fff;
 }
 
-.site-header.blue .mute-button {
+.site-header.blue .mute-button,
+.site-header.stage .mute-button {
   background: transparent;
   border-color: #fff;
   color: #fff;
 }
 
 .site-header.blue .mute-button:hover,
-.site-header.blue .mute-button.muted {
+.site-header.blue .mute-button.muted,
+.site-header.stage .mute-button:hover,
+.site-header.stage .mute-button.muted {
   background: #fff;
   color: #0117d5;
 }
@@ -169,14 +187,16 @@
 .nav-link-highlight {
   position: relative;
   display: inline-block;
-  transition: color 0.3s ease;
+  transition: color var(--stage-seconds, 0.3s) ease;
 }
 
-.site-header.blue .nav-links a {
+.site-header.blue .nav-links a,
+.site-header.stage .nav-links a {
   color: white;
 }
 
-.site-header.blue .nav-links a:hover {
+.site-header.blue .nav-links a:hover,
+.site-header.stage .nav-links a:hover {
   color: rgb(1, 23, 213);
 }
 
