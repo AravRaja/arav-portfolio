@@ -44,25 +44,30 @@ export const LAYOUTS = {
   },
   L4: {
     name: 'Club',
-    // Hand-scattered, yaw +-12-30 deg, varied depth. Desktop: the round-1 framing (loose spread across the width,
-    // mild depth, flat 13 deg camera, lots of air around the crew). Portrait: narrow at the front, wider at the back and
-    // deep (6.3 m), looked down on a little more, so 9 dancers fill a phone between the header and the space key
-    // instead of leaving empty bands (width is the limit there: every dancer needs +-0.9 m for arms + root wander).
+    // Hand-scattered so it reads as people on a floor, not a lattice: no two dancers share an x or z line, neighbour
+    // gaps vary by about +-30%, loose clusters plus a loner or two, yaw within +-35 deg (mostly turned towards the
+    // camera), and nobody hidden more than ~20% by a dancer in front. The lead is at the front, a little left of centre.
+    // Desktop: the round-1 framing (a flat 13 deg camera with lots of air around the crew), spread ~9% wider than
+    // round 1 (7.2 m). Clusters: the left pair (8, 4) + 6, then 2 / lead / 5 in the middle, 1 + 3 on the right, 7 alone.
+    // Portrait: the same bounding box as before (x -1.04..1.08, z -3.64..2.66), narrow at the front, wider at the back
+    // and 6.3 m deep, looked down on a little more, so 9 dancers fill a phone between the header and the space key
+    // (width is the limit there: every dancer needs +-0.9 m for arms + root wander). Groups: a front trio (lead, 1, 2),
+    // a mid pair (3, 4), 8 alone on the left, a back trio (5, 6, 7).
     slots(portrait) {
       const D = [
-        [0, 0.5, 0, 1],
-        [1.45, 0.05, -24, 1], [-1.55, 0.25, 28, 1],
-        [2.75, -0.85, -30, 1], [-2.55, -0.6, 18, 1],
-        [0.75, -1.35, 12, 1], [-0.9, -1.75, -14, 1],
-        [3.3, 0.55, 26, 1], [-3.35, 0.35, -26, 1],
+        [-0.38, 0.88, 6, 1],
+        [1.46, -0.25, -18, 1], [-1.15, -0.62, 20, 1],
+        [2.62, -1.28, -26, 1], [-3.1, -0.98, 30, 1],
+        [0.52, -1.5, 14, 1], [-2.0, 0.42, -10, 1],
+        [3.5, 0.62, -22, 1], [-3.72, 0.22, 24, 1],
       ];
       const Pt = [
-        [0, 1.9, 0, 1],
-        [0.62, 0.85, -24, 1], [-0.66, 1.05, 28, 1],
-        [0.95, -0.55, -30, 1], [-0.9, -0.25, 18, 1],
-        [0.35, -1.75, 12, 1], [-0.4, -2.55, -14, 1],
-        [1.2, -2.6, 26, 1], [-1.15, -1.6, -26, 1],
-      ].map(([x, z, y, s]) => [x * 0.9, z * 1.4, y, s]);
+        [-0.1, 2.66, 6, 1],
+        [0.52, 2.02, -16, 1], [-0.73, 1.49, 26, 1],
+        [0.73, -0.54, -30, 1], [-0.23, -0.23, 8, 1],
+        [0.3, -2.5, 18, 1], [-0.45, -3.38, -12, 1],
+        [1.08, -3.64, -28, 1], [-1.035, -1.5, 24, 1],
+      ];
       return portrait ? Pt : D;
     },
     fov: 30, elevation: [13, [18, 28]], travel: 1.0, desktopFrame: { top: 112, bottom: 150 },
