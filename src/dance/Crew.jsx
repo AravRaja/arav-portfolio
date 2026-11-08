@@ -1,6 +1,8 @@
 // 9-dancer crew on the music stage: the home page's DanceStage.jsx (L4, seed 7) and the dev lab (/dance-lab?crew=L1..L4,
 // key L cycles). Procedural toon bodies (proceduralBody.js) dressed by looks.js, each driven by the shared retargeter
-// from a time-shifted / mirrored copy of the exported trajectories (motion.js), placed by layouts.js.
+// from a time-shifted / mirrored copy of the exported trajectories (motion.js), placed by layouts.js. With `roam` on the
+// dancers also walk to other parts of the floor over the song (roam.js); their outer group stays on the slot (so the
+// camera fit and the shadows are unchanged) and the trip is carried in the rig's root.
 // The bodies can be prebuilt off the hot path (createCrewKit + buildNextDancer, one body per idle callback) and passed
 // in as `kit`; otherwise Crew builds them itself on mount (the lab). GPU buffers / programs are released on unmount
 // either way, while the CPU-side bodies in a kit stay cached for the next mount.
@@ -18,9 +20,10 @@ import { Retargeter } from './retarget.js';
 import { StageLights, addRim, getToonRamp } from './shared.jsx';
 import { bodyFromData, buildCrewBodyData } from './crewBody.js';
 import { Rig, loadFinale } from './rig.js';
-import { loadCrewMeta } from './data.js';
+import { loadCrewMeta, loadTravelData } from './data.js';
 import { generateCrew, PALETTE } from './looks.js';
-import { CrewMotion } from './motion.js';
+import { CrewMotion, TravelLib } from './motion.js';
+import { cachedRoamPlan } from './roam.js';
 import { LAYOUTS } from './layouts.js';
 
 const TEMPLATE_LABEL = { cropHoodie: 'crop hoodie', teeDress: 'tee dress', allblack: 'all black', tee: 'tee + jeans' };
@@ -203,7 +206,9 @@ export async function loadCrewTracks(rig, meta = null) {
   for (const tr of meta.tracks || []) {
     try { rigs.push(new Rig(await loadFinale(tr.base))); } catch (e) { console.warn('[crew] track failed', tr.base, e); }
   }
-  return { meta, rigs };
+  let travel = null; // optional: without it the crew just dances on its slots
+  try { travel = new TravelLib(await loadTravelData()); } catch (e) { console.warn('[crew] travel moves unavailable', e); }
+  return { meta, rigs, travel };
 }
 function useCrewRigs(rig, preset) {
   const [state, setState] = useState(null);
@@ -216,8 +221,22 @@ function useCrewRigs(rig, preset) {
   return preset || state;
 }
 
+// The roaming plan for a layout / orientation (cached; stageKit.js plans the page's ahead of the drop). `dancers`: the
+// mounted crew (their sizes turn rig units into stage metres).
+export function roamPlanFor(motion, travel, layout, portrait, dancers, seeds) {
+  const L = LAYOUTS[layout] || LAYOUTS.L1;
+  const seed = Array.isArray(seeds) ? seeds[portrait ? 1 : 0] : seeds; // one seed, or [landscape, portrait]
+  const slots = L.slots(portrait).slice(0, dancers.length);
+  const K = dancers.map((d, i) => slots[i][3] * d.look.height * d.rt.k);
+  const el = L.elevation[portrait ? 1 : 0];
+  return cachedRoamPlan(motion, travel, `${layout}|${portrait ? 'p' : 'l'}|${dancers.length}|${seed}`,
+    { slots, K, travelK: L.travel, seed, elevation: Array.isArray(el) ? (el[0] + el[1]) / 2 : el });
+}
+
 // `kit`: prebuilt bodies (createCrewKit, all built); `tracks`: preloaded { meta, rigs } (loadCrewTracks). Both optional.
-export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7, lineup = null, kit = null, tracks = null, debug = import.meta.env.DEV }) {
+// `roam`: dancers walk to other parts of the stage over the song (roam.js); `roamSeed` picks the trips (a number, or
+// [landscape, portrait]).
+export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7, lineup = null, kit = null, tracks = null, roam = true, roamSeed = 1, debug = import.meta.env.DEV }) {
   const { size } = useThree();
   const portrait = size.height > size.width;
   const loaded = useCrewRigs(rig, tracks);
@@ -230,7 +249,7 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
   const { looks, materials, dancers } = kit || own;
   const shadows = useMemo(() => makeShadows(dancers.length * 3), [dancers]);
   useEffect(() => () => releaseGpu(dancers, materials, shadows), [dancers, materials, shadows]);
-  const motion = useMemo(() => (loaded ? new CrewMotion(loaded.rigs, loaded.meta) : null), [loaded]);
+  const motion = useMemo(() => (loaded ? loaded.motion || new CrewMotion(loaded.rigs, loaded.meta) : null), [loaded]);
   const L = LAYOUTS[layout] || LAYOUTS.L1;
   // a layout may show fewer dancers on a phone (L.mobileCount); the rest are built but not mounted
   const count = lineup ? dancers.length : Math.min(dancers.length, portrait && L.mobileCount ? L.mobileCount : dancers.length);
@@ -240,6 +259,14 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
     return dancers.map((_, i) => [(i - (dancers.length - 1) / 2) * gap, 0, lineup === 'back' ? 180 : 0, 1]);
   }, [L, portrait, lineup, dancers, count]);
   const shown = useMemo(() => dancers.slice(0, count), [dancers, count]);
+  // the trips for this layout / orientation (planned once, a few ms; the camera framing stays fit to the slots)
+  const plan = useMemo(() => {
+    if (!roam || lineup || !motion || !loaded.travel) return null;
+    try {
+      return roamPlanFor(motion, loaded.travel, layout, portrait, shown, roamSeed);
+    } catch (e) { console.warn('[crew] roaming plan failed', e); return null; }
+  }, [roam, lineup, motion, loaded, layout, portrait, shown, roamSeed]);
+  useLayoutEffect(() => { if (motion) motion.setRoam(plan); }, [motion, plan]);
 
   useLayoutEffect(() => {
     shown.forEach((d, i) => {
@@ -257,6 +284,7 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
       looks, layout, seed, portrait, count, lineup,
       bodies: looks.map((l) => l.body).join(''),
       tracks: loaded ? loaded.rigs.length : 0,
+      roam: plan ? { ...plan.info, list: plan.trips, timeline: plan.timeline } : null,
       describe: (t) => (motion ? dancers.map((_, i) => motion.describe(i, t)) : []),
       // root wander (MuJoCo x / y, m, after `travel`) per dancer over [t0, t1]: sizes the camera's dance box
       wander: (t0 = rig.drop, t1 = 140, dt = 0.05) => (motion ? dancers.map((_, i) => {
@@ -265,9 +293,26 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
         return [+ax.toFixed(2), +ay.toFixed(2)];
       }) : []),
       tris: shown.reduce((a, d) => a + d.tris, 0),
+      // stage positions of every dancer's feet + root over [t0, t1] (foot-slide / pop checks; poses the crew, debug only)
+      track: (t0, t1, fps = 30) => {
+        if (!motion) return null;
+        const out = shown.map(() => ({ l: [], r: [], root: [] }));
+        const v = new Vector3();
+        for (let t = t0; t <= t1 + 1e-9; t += 1 / fps) {
+          shown.forEach((d, i) => {
+            const q = motion.sample(i, t, L.travel);
+            rig.offsetX = 0; rig.offsetY = 0;
+            rig.fk(q);
+            d.rt.update();
+            for (const side of ['l', 'r']) { v.copy(d.rt.footPos(side)).applyMatrix4(d.outer.matrixWorld); out[i][side].push([+v.x.toFixed(4), +v.y.toFixed(4), +v.z.toFixed(4)]); }
+            v.copy(d.rt.hipsPos()).applyMatrix4(d.outer.matrixWorld); out[i].root.push([+v.x.toFixed(4), +v.y.toFixed(4), +v.z.toFixed(4)]);
+          });
+        }
+        return out;
+      },
     };
     return () => { delete window.__crew; };
-  }, [looks, layout, seed, portrait, loaded, motion, dancers, shown, count, lineup, rig, L, debug]);
+  }, [looks, layout, seed, portrait, loaded, motion, dancers, shown, count, lineup, rig, L, debug, plan]);
 
   const dummy = useMemo(() => new Object3D(), []);
   const fwd = useMemo(() => new Vector3(), []);

@@ -27,6 +27,11 @@ export function loadFinaleData(base = '/dance/finale') {
   });
 }
 
+// The travelling 8-counts for the roaming crew (export_web.py travel): same header + Float32 frames format.
+export function loadTravelData() {
+  return loadFinaleData('/dance/travel');
+}
+
 // Crew sync structure: sections, sync units, extra tracks.
 export function loadCrewMeta() {
   return once('/dance/crew.json', () => fetch('/dance/crew.json').then(ok).then((r) => r.json()));

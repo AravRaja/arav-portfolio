@@ -14,6 +14,18 @@ capsules along local z, size = [radius, half-length]) so a client can rebuild th
 kinematics:  X_body = X_parent * T(pos) R(quat) * prod_joints [T(anchor) R(axis, q) T(-anchor)];  the torso's free
 joint replaces its local transform with T(qpos[0:3]) R(qpos[3:7]).  `verify` holds one frame's qpos and MuJoCo's
 own xpos / xquat for every body so the client FK can be checked to float precision.
+
+Travel set for the roaming crew (kinematic library playback, no physics):
+
+    PYTHONPATH=src .venv-data/bin/python -m dance_rl.export_web travel \
+        [--library data/library] [--ids a,b,c] --out ../public/dance/travel [--fps 30]
+
+Writes <out>.json + <out>.bin: the same 29-float frame layout as the finale (time column = seconds since the move's
+first downbeat), one 8-count clip per move and one per mirror, `n_per_clip` frames each (0 .. 4.25 s at `fps`).
+Every clip is re-rooted (root xy = 0, torso heading +x at frame 0) and carries its net root displacement
+(`disp`, MuJoCo xy, m), the torso heading change start -> end (`yaw_end`, rad, unwrapped) and a few path stats the
+client's trip planner uses (`lat_max`, `prog_min` / `prog_max` along the displacement, `path_m`, root speed over the
+first / last half second `v_start` / `v_end`).
 """
 from __future__ import annotations
 
@@ -88,7 +100,96 @@ def _units(d, names):
     return out
 
 
+# Travelling 8-counts for the roaming crew. Picked from the library's non-in-place moves (net root displacement
+# 0.64-2.1 m over the 2 bars, |yaw change| <= 61 deg, speed_factor <= 1.13, pelvis_z_min > 0.6), then by their root
+# path and the contact sheets: progress mostly one way (no long detour out and back), lateral wobble <= 0.42 m,
+# both feet off the floor <= 28% of the time, torso never above 1.33 m (no jumps): stepping / walking grooves. A clip
+# must also start and settle at walking pace (root speed over its first / last half second <= 0.66 / 0.58 m/s), so
+# the trip blends into the dance on either side without a lurch.
+# Dropped: d22 ch03_s0 / s4 and d24 ch21_s5 (out-and-back loops), d23 ch10_s1 and ch13_s7 (jumps), d23 ch10_s3
+# (overshoots 1.2 m past its end), d23 ch13_s3 and ch12_s6 (still moving at 1.45 / 0.78 m/s, crouched, when the 8-count
+# ends). The library has only ~11 that pass at >= 0.8 m, so three 0.64-0.65 m ones fill in the forward diagonals.
+# Directions (move frame, mirrors double them): back (ch13_s0, ch12_s7, ch17_s3), back-diagonal (ch12_s2, ch11_s2),
+# sideways (ch17_s0, ch10_s2, d22 ch04_s6), forward (ch12_s1, d17 ch10_s3), forward-diagonal (ch11_s3, ch17_s1).
+TRAVEL_IDS = [
+    "gMH_sFM_d23_mMH5_ch13_s0", "gLH_sFM_d18_mLH2_ch17_s0", "gMH_sFM_d23_mMH2_ch10_s2", "gMH_sFM_d23_mMH4_ch12_s1",
+    "gLH_sFM_d17_mLH2_ch10_s3", "gLH_sFM_d18_mLH2_ch17_s3", "gMH_sFM_d23_mMH4_ch12_s7", "gMH_sFM_d23_mMH4_ch12_s2",
+    "gLH_sFM_d17_mLH3_ch11_s2", "gLH_sFM_d17_mLH3_ch11_s3", "gLH_sFM_d18_mLH2_ch17_s1", "gMH_sFM_d22_mMH3_ch04_s6",
+]
+
+
+def _heading(q):
+    w, x, y, z = q[..., 3], q[..., 4], q[..., 5], q[..., 6]
+    return np.arctan2(2 * (x * y + w * z), 1 - 2 * (y * y + z * z))
+
+
+def travel_main(argv):
+    ap = argparse.ArgumentParser(prog="export_web travel")
+    ap.add_argument("--library", default="data/library")
+    ap.add_argument("--ids", default=None, help="comma-separated move ids (default: TRAVEL_IDS)")
+    ap.add_argument("--out", required=True, help="path without extension")
+    ap.add_argument("--fps", type=float, default=30.0)
+    a = ap.parse_args(argv)
+    man = json.load(open(os.path.join(a.library, "manifest.json")))
+    by_id = {m["id"]: m for m in man["moves"]}
+    z = np.load(os.path.join(a.library, "moves.npz"), allow_pickle=False)
+    ids = a.ids.split(",") if a.ids else TRAVEL_IDS
+    m = load_model()
+    jn = [mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_JOINT, j) for j in range(1, m.njnt)]
+    assert jn == [str(s) for s in z["joint_names"]], "joint order differs from the library"
+    src_fps = float(z["fps"])
+    n_per = int(np.ceil(EIGHT * a.fps)) + 1          # 0 .. 4.267 s: covers the whole 8-count
+    blocks, clips = [], []
+    for mid in ids:
+        md = by_id[mid]
+        for mirrored in (False, True):
+            Q = np.asarray((z["qpos_mirror"] if mirrored else z["qpos"])[md["index"]], np.float64)
+            t, q = _resample(Q, src_fps, a.fps, (n_per - 1) / a.fps)
+            q[:, 0:2] -= q[0, 0:2]
+            blocks.append(np.concatenate([t[:, None], q], axis=1))
+            xy = q[:, 0:2]
+            disp = xy[-1] if t[-1] <= EIGHT else xy[int(round(EIGHT * a.fps))]
+            L = float(np.linalg.norm(disp))
+            u = disp / max(L, 1e-9)
+            prog, lat = xy @ u, xy @ np.array([-u[1], u[0]])
+            yaw = np.unwrap(_heading(q))
+            ke = min(len(q) - 1, int(round(EIGHT * a.fps)))
+            half = int(round(0.5 * a.fps))
+            clips.append(dict(
+                id=mid + ("_M" if mirrored else ""), src=mid, mirrored=mirrored, offset=len(clips) * n_per,
+                disp=np.round(disp, 4).tolist(), disp_m=round(L, 4), yaw_end=round(float(yaw[ke] - yaw[0]), 4),
+                lat_max=round(float(np.abs(lat).max()), 3), prog_min=round(float(prog.min()), 3),
+                prog_max=round(float(prog.max()), 3),
+                path_m=round(float(np.linalg.norm(np.diff(xy, axis=0), axis=1).sum()), 3),
+                v_start=round(float(np.linalg.norm(xy[half] - xy[0]) / (half / a.fps)), 3),
+                v_end=round(float(np.linalg.norm(xy[ke] - xy[ke - half]) / (half / a.fps)), 3),
+                speed_factor=md["speed_factor"], pelvis_z_min=md["pelvis_z_min"], energy_mps=md["energy_mps"]))
+    frames = np.concatenate(blocks, axis=0).astype("<f4")
+    os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
+    frames.tofile(a.out + ".bin")
+    header = dict(
+        format="dance-travel/1", bin=os.path.basename(a.out) + ".bin",
+        layout="float32 LE, frame-major, 29 per frame: [t since the clip's first downbeat, root_x, root_y, root_z, "
+               "root_qw, root_qx, root_qy, root_qz, 21 hinge angles in joint_names order]; MuJoCo frame (z up), "
+               "re-rooted: root xy = 0 and torso heading +x at t = 0",
+        stride=29, fps=a.fps, n_per_clip=n_per, n_clips=len(clips), eight=EIGHT, joint_names=jn,
+        source=dict(library=os.path.relpath(a.library), note="AIST++ moves retargeted + beat-aligned to 112.94 BPM; "
+                    "kinematic playback of the library qpos (no physics)"),
+        clips=clips)
+    with open(a.out + ".json", "w") as f:
+        json.dump(header, f, separators=(",", ":"))
+    print(f"wrote {a.out}.bin ({os.path.getsize(a.out + '.bin') / 1e3:.1f} kB, {len(clips)} clips x {n_per} frames @ "
+          f"{a.fps} fps) and {a.out}.json ({os.path.getsize(a.out + '.json') / 1e3:.1f} kB)")
+    for c in clips:
+        print(f"  {c['id']:30s} disp {c['disp_m']:.2f} m  dir {np.degrees(np.arctan2(c['disp'][1], c['disp'][0])):6.0f}"
+              f"  yaw_end {np.degrees(c['yaw_end']):6.1f}  lat {c['lat_max']:.2f}  prog {c['prog_min']:.2f}..{c['prog_max']:.2f}"
+              f"  v {c['v_start']:.2f} / {c['v_end']:.2f} m/s")
+
+
 def main():
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "travel":
+        return travel_main(sys.argv[2:])
     ap = argparse.ArgumentParser()
     ap.add_argument("--rollout", required=True)
     ap.add_argument("--out", required=True, help="path without extension")

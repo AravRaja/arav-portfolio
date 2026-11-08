@@ -11,7 +11,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import Crew from './Crew.jsx';
 import { CAPTIONS } from './captions.js';
 import { WebGLRecovery } from './useWebGLRecovery.js';
-import { CREW_LAYOUT, CREW_SEED, crewReady, prepareCrew } from './stageKit.js';
+import { CREW_LAYOUT, CREW_ROAM_SEED, CREW_SEED, crewReady, prepareCrew } from './stageKit.js';
 import { holdSync } from '../audio/holdSync.js';
 import './DanceStage.css';
 
@@ -55,7 +55,7 @@ function StageScene({ ready, clock, live, onCompiled, onFirstFrame, onContextGon
   return (
     <>
       {/* same margins as the lab: below the intro text (146 / 108 px; L4 pins 112 / 150 on desktop), above the caption */}
-      <Crew rig={ready.kit.rig} clock={clock} layout={CREW_LAYOUT} seed={CREW_SEED} kit={ready.kit} tracks={ready.tracks}
+      <Crew rig={ready.kit.rig} clock={clock} layout={CREW_LAYOUT} seed={CREW_SEED} kit={ready.kit} tracks={ready.tracks} roam roamSeed={CREW_ROAM_SEED}
         top={narrow ? 146 : 108} bottom={118} />
       <Warmup onCompiled={onCompiled} onFirstFrame={onFirstFrame} live={live} />
       <WebGLRecovery onUnrecoverable={onContextGone} />
