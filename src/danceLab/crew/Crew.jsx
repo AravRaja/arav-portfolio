@@ -156,11 +156,14 @@ function CrewCamera({ slots, layout, top, bottom, portrait, lineup }) {
   const { camera, size } = useThree();
   useLayoutEffect(() => {
     const L = LAYOUTS[layout];
-    const opts = lineup ? { top, bottom, fov: 18, elevation: 4, arm: 0.58, wander: 0, side: 0.98 }
-      : { top, bottom, fov: L.fov, elevation: L.elevation[portrait ? 1 : 0], arm: portrait ? (L.armPortrait ?? 0.6) : 0.75,
+    // a layout may pin its own desktop margins (L4 keeps the round-1 112 / 150 px gap so the crew sits where it did)
+    const fr = (!lineup && !portrait && L.desktopFrame) || {};
+    const t = fr.top ?? top, b = fr.bottom ?? bottom;
+    const opts = lineup ? { top: t, bottom: b, fov: 18, elevation: 4, arm: 0.58, wander: 0, side: 0.98 }
+      : { top: t, bottom: b, fov: L.fov, elevation: L.elevation[portrait ? 1 : 0], arm: portrait ? (L.armPortrait ?? 0.6) : 0.75,
         wander: (portrait && L.wanderPortrait != null ? L.wanderPortrait : 0.3) * L.travel };
     const r = fitCamera(camera, size.width, size.height, slots.map(([x, z, , s]) => [x, z, s]), opts);
-    window.__crewCam = { ...r, w: size.width, h: size.height, top, bottom };
+    window.__crewCam = { ...r, w: size.width, h: size.height, top: t, bottom: b };
   }, [camera, size.width, size.height, slots, layout, top, bottom, portrait, lineup]);
   return null;
 }

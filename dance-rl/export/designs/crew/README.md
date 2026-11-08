@@ -1,5 +1,19 @@
 # Crew mock-ups: 9 procedural dancers on the music stage
 
+## Round 3: L4 final (`L4-final/`), round-1 desktop framing + round-2 cast
+The user preferred the round-1 desktop framing. Desktop L4 is back to the round-1 values; the phone framing and the
+round-2 cast (seed 7, 5 women / 4 men) are unchanged.
+- Desktop slots: the round-1 scatter, no longer x ×0.8 / z ×1.8. Elevation is a fixed 13° again, not the 12–18° auto
+  pick. `desktopFrame: { top: 112, bottom: 150 }` restores the round-1 margins for L4 on desktop only.
+- Measured against `L4/still_landscape_1920x1080_41.04s.png`: crew span 82.9% vs 83.0% of the width; crew box height
+  37.6% vs 37.2%; top/bottom edges 33.2–70.8% vs 32.7–69.9%; group x-centres within 0.5%. The fit is width-limited, so
+  the camera is the same at 1280×720 and 1920×1080 (dist 11.55 m, fov 30°, 13°).
+- Phone: the camera is identical (390×844: 28°, dist 16.50 m), and the crew pixels match before/after
+  (`phone_390x844_before_after.png`).
+- Files: `desktop_1920x1080_41.04s.png` (1920×1080 CSS at 2×, downscaled), `desktop_clip_1280x720_38.38-46.38s.mp4`
+  (8 s, 30 fps, frames rendered frozen in headless Chrome with `--mute-audio`, song muxed with ffmpeg),
+  `compare_desktop.png` (round 1 | final).
+
 ## Round 2: L4 Club with a more diverse crew (`L4-diverse/`)
 The user picked **L4 Club**. This round adds women, more hairstyles and two more outfits, and reframes L4 for phones.
 Open `/dance-lab?crew=L4` (`&seed=N` re-rolls). `&lineup=front|back` shows the 9 looks in a row in the bind pose.

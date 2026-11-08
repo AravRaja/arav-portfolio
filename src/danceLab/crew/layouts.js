@@ -44,10 +44,10 @@ export const LAYOUTS = {
   },
   L4: {
     name: 'Club',
-    // Hand-scattered, yaw +-12-30 deg, varied depth. Desktop: compressed sideways / stretched in depth from the first
-    // round so the crew is bigger on 16:9. Portrait: narrow at the front, wider at the back and deep (6.3 m), looked
-    // down on a little more, so 9 dancers fill a phone between the header and the space key instead of leaving empty
-    // bands (width is the limit there: every dancer needs +-0.9 m for arms + measured root wander).
+    // Hand-scattered, yaw +-12-30 deg, varied depth. Desktop: the round-1 framing (loose spread across the width,
+    // mild depth, flat 13 deg camera, lots of air around the crew). Portrait: narrow at the front, wider at the back and
+    // deep (6.3 m), looked down on a little more, so 9 dancers fill a phone between the header and the space key
+    // instead of leaving empty bands (width is the limit there: every dancer needs +-0.9 m for arms + root wander).
     slots(portrait) {
       const D = [
         [0, 0.5, 0, 1],
@@ -55,7 +55,7 @@ export const LAYOUTS = {
         [2.75, -0.85, -30, 1], [-2.55, -0.6, 18, 1],
         [0.75, -1.35, 12, 1], [-0.9, -1.75, -14, 1],
         [3.3, 0.55, 26, 1], [-3.35, 0.35, -26, 1],
-      ].map(([x, z, y, s]) => [x * 0.8, z * 1.8, y, s]);
+      ];
       const Pt = [
         [0, 1.9, 0, 1],
         [0.62, 0.85, -24, 1], [-0.66, 1.05, 28, 1],
@@ -65,7 +65,7 @@ export const LAYOUTS = {
       ].map(([x, z, y, s]) => [x * 0.9, z * 1.4, y, s]);
       return portrait ? Pt : D;
     },
-    fov: 30, elevation: [[12, 18], [18, 28]], travel: 1.0,
+    fov: 30, elevation: [13, [18, 28]], travel: 1.0, desktopFrame: { top: 112, bottom: 150 },
   },
 };
 export const LAYOUT_KEYS = Object.keys(LAYOUTS);
