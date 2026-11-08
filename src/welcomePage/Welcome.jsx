@@ -5,12 +5,23 @@ import SpaceButton from './components/SpaceButton.jsx';
 import { ANIMATION } from '../animation/config.js';
 import { useNavigate } from 'react-router-dom';
 import { useZoomAndNavigate } from '../hooks/useZoomAndNavigate.js';
+import { loadDanceStage, prefetchDanceStage } from '../dance/prefetch.js';
 
 export default function Welcome() {
   const [animation, setAnimation] = useState(ANIMATION.IDLE);
   const [zoomTrigger, setZoomTrigger] = useState(0);
   // Music stage: after the drop the camera zooms into the deck and the page turns blue
   const [stageZoom, setStageZoom] = useState(null);
+  // The crew appears once the deck has stopped drawing (end of the zoom in) and stays mounted through its fade-out
+  const [deckPaused, setDeckPaused] = useState(false);
+  const crewActive = !!stageZoom?.inward && deckPaused;
+  const [crewMounted, setCrewMounted] = useState(false);
+  useEffect(() => { if (crewActive) setCrewMounted(true); }, [crewActive]);
+  const crewExited = useCallback(() => setCrewMounted(false), []);
+  // The dancing crew is its own chunk, fetched (with its data, and its bodies built) as soon as space is first held.
+  // Held as a plain component once loaded rather than through React.lazy + Suspense, whose reveal throttle would
+  // hold the crew back ~300 ms on its first appearance.
+  const [DanceStage, setDanceStage] = useState(null);
   const navigate = useNavigate();
 
   const startZoom = useCallback(() => {
@@ -50,6 +61,18 @@ export default function Welcome() {
     return () => window.removeEventListener('dj-stage', handler);
   }, []);
 
+  // Start fetching / building the crew the moment space is first held, so the drop never waits on it
+  useEffect(() => {
+    let alive = true;
+    const handler = (e) => {
+      if (!e.detail?.held) return;
+      prefetchDanceStage().catch(() => {});
+      loadDanceStage().then((m) => { if (alive) setDanceStage(() => m.default); }).catch(() => {});
+    };
+    window.addEventListener('dj-hold-change', handler);
+    return () => { alive = false; window.removeEventListener('dj-hold-change', handler); };
+  }, []);
+
   // Dispatch animation state changes to Header for audio control
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('animation-state-change', { 
@@ -62,6 +85,7 @@ export default function Welcome() {
       className={`welcome-container ${stageZoom?.inward ? 'music-stage' : ''}`}
       style={{ '--stage-seconds': `${stageZoom?.seconds ?? 0.7}s` }}
     >
+      {crewMounted && DanceStage && <DanceStage active={crewActive} onExited={crewExited} />}
       <div className="welcome-header-row">
         <div className="welcome-left">
           <p className="intro-heading">
@@ -84,6 +108,7 @@ export default function Welcome() {
         onActivate={handleActivate}
         zoomTrigger={zoomTrigger}
         stageZoom={stageZoom}
+        onPausedChange={setDeckPaused}
       />
       
       <SpaceButton

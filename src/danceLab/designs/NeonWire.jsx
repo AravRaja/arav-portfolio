@@ -2,7 +2,7 @@ import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { AddEquation, BackSide, Color, CustomBlending, EdgesGeometry, FrontSide, OneFactor, ShaderMaterial, ZeroFactor } from 'three';
 import { RigBodies, YELLOW, geomGeometry } from './common.jsx';
-import { geomMatrix } from '../rig.js';
+import { geomMatrix } from '../../dance/rig.js';
 
 // C. Neon wire: the body as glowing tubes on a darker club stage. Each capsule is an additive
 // rim-lit shell (bright at the silhouette, almost clear in the middle) plus a wider, softer halo

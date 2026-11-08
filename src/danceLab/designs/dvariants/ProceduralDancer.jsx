@@ -4,9 +4,9 @@
 import React, { useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { FrontSide, Group, Mesh, MeshLambertMaterial, MeshToonMaterial, Skeleton, SkinnedMesh, Vector3 } from 'three';
-import { Retargeter } from './retarget.js';
-import { buildDancer } from './proceduralBody.js';
-import { FootShadow, StageLights, addRim, getToonRamp, headphonesGeometry } from './shared.jsx';
+import { Retargeter } from '../../../dance/retarget.js';
+import { buildDancer } from '../../../dance/proceduralBody.js';
+import { FootShadow, StageLights, addRim, getToonRamp, headphonesGeometry } from '../../../dance/shared.jsx';
 
 function Dancer({ rig, clock, outfit, rim }) {
   const { root, rt } = useMemo(() => {

@@ -7,6 +7,7 @@ export const holdSync = {
   songActive: false, // the dropped song is still playing (or fading out)
   openness: () => 0, // how open the low-pass is right now: 0 = muffled, 1 = fully open
   beatPhase: () => null, // 0..1 through the current beat of the intro loop (null when unknown)
+  songTime: () => null, // seconds into the song as heard right now (intro loop, then the song after the drop); null when silent
   estimateRemaining: () => 3,
   estimateDrain: () => 3,
   pickDuration: (seconds) => seconds,

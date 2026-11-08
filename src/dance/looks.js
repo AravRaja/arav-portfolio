@@ -1,4 +1,4 @@
-// Crew looks: a small seeded generator that dresses the procedural body (dvariants/proceduralBody.js) in
+// Crew looks: a small seeded generator that dresses the procedural body (proceduralBody.js) in
 // 9 distinct but cohesive outfits from one palette that sits on the site blue. Every look is plain data
 // (the outfit params buildDancer() takes), so a crew is reproducible from its seed and can be exported
 // as JSON (window.__crew.looks in the lab, dance-rl/export/designs/crew/looks.json).
@@ -6,7 +6,8 @@
 // Rules: 6 templates (hoodie / tracksuit / tee + jeans / all black, plus crop hoodie + high-waist cargos and
 // an oversized tee worn as a dress over leggings), garments only from PALETTE, at most one loud garment colour
 // (red or yellow) per look, yellow kept for accents (drawstrings, soles, laces, headphones, belt, hair ties)
-// except on one tee. Look 0 is the lead (white hoodie + yellow headphones, either body).
+// except on one tee (and the yellow hoodie that replaces a second all-black look on the same body, see the end of
+// generateCrew). Look 0 is the lead (white hoodie + yellow headphones, either body).
 //
 // Bodies: by default 5 women ('f' body in proceduralBody.js) and 4 men, shuffled over the slots by the seed
 // (the lead can be either). Hairstyles are dealt without repeats per body (women: ponytail / bob / puffs /
@@ -53,10 +54,12 @@ const loud = (c) => c === P.red || c === P.yellow;
 
 const TEMPLATES = {
   hoodie(r, want) {
-    const top = [P.offwhite, P.bluegrey, P.red, P.white].includes(want) ? want : pick(r, [P.offwhite, P.bluegrey, P.red]);
+    // (yellow only comes from the all-black fix below: the deck never deals a yellow hoodie)
+    const top = [P.offwhite, P.bluegrey, P.red, P.white, P.yellow].includes(want) ? want : pick(r, [P.offwhite, P.bluegrey, P.red]);
     const pants = pick(r, loud(top) ? [P.black, P.bluegrey] : [P.black, P.bluegrey, P.offwhite].filter((c) => c !== top));
     return {
-      top, topCuff: shade(top, -0.1), hood: true, pocket: r() < 0.7, strings: top === P.white || top === P.offwhite ? P.yellow : pick(r, [P.yellow, P.white]),
+      top, topCuff: shade(top, -0.1), hood: true, pocket: r() < 0.7,
+      strings: top === P.yellow ? P.white : top === P.white || top === P.offwhite ? P.yellow : pick(r, [P.yellow, P.white]),
       oversize: 1.08 + 0.06 * r(), topLength: 'long', pants, cargo: r() < 0.5 ? shade(pants, -0.15) : undefined, baggy: 1.1 + 0.1 * r(),
       shoe: pick(r, [P.white, P.offwhite]), sole: pick(r, [P.yellow, P.white, P.offwhite]), lace: P.white, chunky: 1.06 + 0.08 * r(), sock: P.white,
     };
@@ -190,5 +193,21 @@ export function generateCrew(seed = 7, n = 9, { women = Math.round((n * 5) / 9) 
     const height = i === 0 ? (body === 'f' ? 0.95 : 1.0) : body === 'f' ? 0.915 + 0.055 * r() : 0.97 + 0.07 * r();
     looks.push({ id: i, body, template, hairStyle: style, height: +height.toFixed(3), outfit: o });
   }
+  // Two all-black looks on the same body read as one dark shape when they end up side by side (seed 7: both women in
+  // black, next to each other on the phone), so the later one is re-dressed in a yellow hoodie. It is dressed from
+  // its own RNG stream, so every other look, and this one's body, skin, hair, headwear and height, stay as dealt.
+  const black = looks.filter((l) => l.template === 'allblack');
+  black.forEach((l, k) => {
+    if (!black.slice(0, k).some((b) => b.body === l.body)) return;
+    const old = l.outfit;
+    const o = TEMPLATES.hoodie(mulberry32(seed * 7919 + l.id), P.yellow);
+    for (const key of ['body', 'skin', 'hair', 'hairStyle', 'hairTie', 'hat', 'hatCol', 'headphones', 'phonesCol', 'bandCol']) if (key in old) o[key] = old[key];
+    if (o.hairTie === P.yellow) o.hairTie = P.white; // one loud colour per look, and keep the accents visible
+    if (o.phonesCol === P.yellow) o.phonesCol = P.white;
+    if (loud(o.hatCol)) o.hatCol = P.black;
+    for (const key of Object.keys(o)) if (o[key] === undefined) delete o[key];
+    l.template = 'hoodie';
+    l.outfit = o;
+  });
   return looks;
 }

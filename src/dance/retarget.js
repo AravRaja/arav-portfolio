@@ -16,7 +16,7 @@
 // (scaled by the leg-length ratio k), then lifted so the lowest sole point sits where the rig's does.
 // Unmapped bones (clavicles, neck, head, hands, toes, fingers, face) keep their bind local transform.
 import { Box3, Matrix4, Quaternion, Vector3 } from 'three';
-import { MJ_TO_THREE } from '../../rig.js';
+import { MJ_TO_THREE } from './rig.js';
 
 const QM = new Quaternion().setFromRotationMatrix(MJ_TO_THREE);
 const QMI = QM.clone().invert();

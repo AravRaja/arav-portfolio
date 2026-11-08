@@ -1,0 +1,319 @@
+{
+ "profile": "desktop",
+ "cpuThrottle": 1,
+ "runs": [
+  {
+   "cycle": 1,
+   "holdFps": {
+    "n": 206,
+    "fps": 60,
+    "mean": 16.67,
+    "p50": 16.7,
+    "p95": 16.7,
+    "p99": 16.8,
+    "max": 16.8,
+    "over20": 0
+   },
+   "dropFps": {
+    "n": 99,
+    "fps": 60,
+    "mean": 16.67,
+    "p50": 16.7,
+    "p95": 16.8,
+    "p99": 16.8,
+    "max": 16.8,
+    "over20": 0
+   },
+   "stageFps": {
+    "n": 300,
+    "fps": 60,
+    "mean": 16.67,
+    "p50": 16.7,
+    "p95": 16.7,
+    "p99": 16.8,
+    "max": 16.8,
+    "over20": 0
+   },
+   "marks": [
+    [
+     "dance-stage:mount",
+     808
+    ],
+    [
+     "dance-stage:compiled",
+     913
+    ],
+    [
+     "dance-stage:first-frame",
+     920
+    ]
+   ],
+   "visibleAfterRelease": 962,
+   "longtasksHold": [],
+   "longtasksDrop": [],
+   "heapAfter": 8.9,
+   "hitches": [],
+   "kitReadyAt": 358.5,
+   "webgl": {
+    "live": 1,
+    "created": 2,
+    "canvases": 1,
+    "stage": false
+   }
+  },
+  {
+   "cycle": 2,
+   "holdFps": {
+    "n": 207,
+    "fps": 60,
+    "mean": 16.67,
+    "p50": 16.7,
+    "p95": 16.7,
+    "p99": 16.8,
+    "max": 16.8,
+    "over20": 0
+   },
+   "dropFps": {
+    "n": 97,
+    "fps": 59.4,
+    "mean": 16.84,
+    "p50": 16.7,
+    "p95": 16.7,
+    "p99": 33.3,
+    "max": 33.3,
+    "over20": 1
+   },
+   "stageFps": {
+    "n": 299,
+    "fps": 60,
+    "mean": 16.67,
+    "p50": 16.7,
+    "p95": 16.8,
+    "p99": 16.8,
+    "max": 16.8,
+    "over20": 0
+   },
+   "marks": [
+    [
+     "dance-stage:mount",
+     807
+    ],
+    [
+     "dance-stage:compiled",
+     890
+    ],
+    [
+     "dance-stage:first-frame",
+     893
+    ]
+   ],
+   "visibleAfterRelease": 951,
+   "longtasksHold": [],
+   "longtasksDrop": [],
+   "heapAfter": 9.29,
+   "hitches": [],
+   "kitReadyAt": -14486.200000047684,
+   "webgl": {
+    "live": 1,
+    "created": 3,
+    "canvases": 1,
+    "stage": false
+   }
+  },
+  {
+   "cycle": 3,
+   "holdFps": {
+    "n": 207,
+    "fps": 60,
+    "mean": 16.67,
+    "p50": 16.7,
+    "p95": 16.7,
+    "p99": 16.8,
+    "max": 16.8,
+    "over20": 0
+   },
+   "dropFps": {
+    "n": 97,
+    "fps": 60,
+    "mean": 16.67,
+    "p50": 16.7,
+    "p95": 16.8,
+    "p99": 16.8,
+    "max": 16.8,
+    "over20": 0
+   },
+   "stageFps": {
+    "n": 299,
+    "fps": 60,
+    "mean": 16.67,
+    "p50": 16.7,
+    "p95": 16.8,
+    "p99": 16.8,
+    "max": 16.8,
+    "over20": 0
+   },
+   "marks": [
+    [
+     "dance-stage:mount",
+     804
+    ],
+    [
+     "dance-stage:compiled",
+     893
+    ],
+    [
+     "dance-stage:first-frame",
+     897
+    ]
+   ],
+   "visibleAfterRelease": 936,
+   "longtasksHold": [],
+   "longtasksDrop": [],
+   "heapAfter": 9.55,
+   "hitches": [],
+   "kitReadyAt": -29191.700000047684,
+   "webgl": {
+    "live": 1,
+    "created": 4,
+    "canvases": 1,
+    "stage": false
+   }
+  },
+  {
+   "cycle": 4,
+   "holdFps": {
+    "n": 207,
+    "fps": 60,
+    "mean": 16.67,
+    "p50": 16.7,
+    "p95": 16.8,
+    "p99": 16.8,
+    "max": 16.8,
+    "over20": 0
+   },
+   "dropFps": {
+    "n": 99,
+    "fps": 60,
+    "mean": 16.67,
+    "p50": 16.7,
+    "p95": 16.7,
+    "p99": 16.8,
+    "max": 16.8,
+    "over20": 0
+   },
+   "stageFps": {
+    "n": 299,
+    "fps": 60,
+    "mean": 16.67,
+    "p50": 16.7,
+    "p95": 16.7,
+    "p99": 16.8,
+    "max": 16.8,
+    "over20": 0
+   },
+   "marks": [
+    [
+     "dance-stage:mount",
+     805
+    ],
+    [
+     "dance-stage:compiled",
+     892
+    ],
+    [
+     "dance-stage:first-frame",
+     896
+    ]
+   ],
+   "visibleAfterRelease": 969,
+   "longtasksHold": [],
+   "longtasksDrop": [],
+   "heapAfter": 9.71,
+   "hitches": [],
+   "kitReadyAt": -43875.800000190735,
+   "webgl": {
+    "live": 1,
+    "created": 5,
+    "canvases": 1,
+    "stage": false
+   }
+  },
+  {
+   "cycle": 5,
+   "holdFps": {
+    "n": 206,
+    "fps": 60,
+    "mean": 16.67,
+    "p50": 16.7,
+    "p95": 16.7,
+    "p99": 16.8,
+    "max": 16.8,
+    "over20": 0
+   },
+   "dropFps": {
+    "n": 98,
+    "fps": 60,
+    "mean": 16.67,
+    "p50": 16.7,
+    "p95": 16.7,
+    "p99": 16.8,
+    "max": 16.8,
+    "over20": 0
+   },
+   "stageFps": {
+    "n": 299,
+    "fps": 60,
+    "mean": 16.67,
+    "p50": 16.7,
+    "p95": 16.7,
+    "p99": 16.8,
+    "max": 16.8,
+    "over20": 0
+   },
+   "marks": [
+    [
+     "dance-stage:mount",
+     804
+    ],
+    [
+     "dance-stage:compiled",
+     896
+    ],
+    [
+     "dance-stage:first-frame",
+     901
+    ]
+   ],
+   "visibleAfterRelease": 942,
+   "longtasksHold": [],
+   "longtasksDrop": [],
+   "heapAfter": 9.8,
+   "hitches": [],
+   "kitReadyAt": -58587.200000047684,
+   "webgl": {
+    "live": 1,
+    "created": 6,
+    "canvases": 1,
+    "stage": false
+   }
+  }
+ ],
+ "fps_home": {
+  "n": 179,
+  "fps": 60,
+  "mean": 16.67,
+  "p50": 16.7,
+  "p95": 16.8,
+  "p99": 16.8,
+  "max": 16.8,
+  "over20": 0
+ },
+ "heap0": 6.65,
+ "console": [
+  "log: THREE.WebGLRenderer: Context Lost.",
+  "log: THREE.WebGLRenderer: Context Lost.",
+  "log: THREE.WebGLRenderer: Context Lost.",
+  "log: THREE.WebGLRenderer: Context Lost.",
+  "log: THREE.WebGLRenderer: Context Lost."
+ ]
+}

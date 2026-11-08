@@ -1,7 +1,7 @@
 import React, { useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { CanvasTexture, CapsuleGeometry, Group, Object3D, SphereGeometry, Vector3 } from 'three';
-import { MJ_TO_THREE, geomMatrix } from '../rig.js';
+import { MJ_TO_THREE, geomMatrix } from '../../dance/rig.js';
 
 export const BLUE = '#0117d5';
 export const YELLOW = '#f0ff18';

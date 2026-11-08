@@ -6,6 +6,7 @@
 // Poses are in MuJoCo world coordinates (z up, the dancer faces +x); MJ_TO_THREE turns that into
 // three.js (y up, facing +z = towards the camera).
 import { Matrix4, Quaternion, Vector3 } from 'three';
+import { loadFinaleData } from './data.js';
 
 export const MJ_TO_THREE = new Matrix4().set(
   0, 1, 0, 0,
@@ -14,10 +15,8 @@ export const MJ_TO_THREE = new Matrix4().set(
   0, 0, 0, 1,
 );
 
-export async function loadFinale(base = '/dance/finale') {
-  const header = await (await fetch(`${base}.json`)).json();
-  const buf = await (await fetch(`${base}.bin`)).arrayBuffer();
-  return { header, frames: new Float32Array(buf) };
+export function loadFinale(base = '/dance/finale') {
+  return loadFinaleData(base); // memoised: one download per base
 }
 
 const BREATH_PERIOD = 3.6; // seconds per breath while waiting for the drop

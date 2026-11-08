@@ -10,18 +10,19 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import Header from '../Header.jsx';
 import '../welcomePage/Welcome.css';
 import '../welcomePage/components/SpaceButton.css';
+import '../dance/DanceStage.css'; // the caption
 import './DanceLab.css';
-import { Rig, loadFinale } from './rig.js';
-import { CAPTIONS } from './captions.js';
-import { WebGLRecovery } from './useWebGLRecovery.js';
+import { Rig, loadFinale } from '../dance/rig.js';
+import { CAPTIONS } from '../dance/captions.js';
+import { WebGLRecovery } from '../dance/useWebGLRecovery.js';
 import { StageCamera } from './designs/common.jsx';
 import InkFigure from './designs/InkFigure.jsx';
 import CapsuleMannequin from './designs/CapsuleMannequin.jsx';
 import NeonWire from './designs/NeonWire.jsx';
 import LowPolyCharacter from './designs/LowPolyCharacter.jsx';
 import { EXTRA_DESIGNS } from './designs/index.js'; // D1-D6 (keys 5-9, 0)
-import Crew from './crew/Crew.jsx';
-import { LAYOUTS, LAYOUT_KEYS } from './crew/layouts.js';
+import Crew from '../dance/Crew.jsx';
+import { LAYOUTS, LAYOUT_KEYS } from '../dance/layouts.js';
 
 const DESIGNS = {
   A: { name: 'Ink figure', Component: InkFigure, stage: 'blue', dpr: 2 },
@@ -105,7 +106,7 @@ function Stage({ rig, clock, design, verify, statsRef, onContextGone, crew, seed
   const narrow = size.width <= 900;
   return (
     <>
-      {crew ? <Crew rig={rig} clock={clock} layout={crew} seed={seed} lineup={lineup} top={lineup ? 24 : narrow ? 146 : 108} bottom={lineup ? 24 : 118} /> : (
+      {crew ? <Crew rig={rig} clock={clock} layout={crew} seed={seed} lineup={lineup} top={lineup ? 24 : narrow ? 146 : 108} bottom={lineup ? 24 : 118} debug /> : (
         <>
           {verify ? <VerifyCamera rig={rig} /> : <StageCamera top={narrow ? 150 : 112} bottom={narrow ? 150 : 150} />}
           <Design rig={rig} clock={clock} />

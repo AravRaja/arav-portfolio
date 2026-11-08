@@ -1,0 +1,139 @@
+{
+ "profile": "phone",
+ "cpuThrottle": 4,
+ "runs": [
+  {
+   "cycle": 1,
+   "holdFps": {
+    "n": 204,
+    "fps": 60,
+    "mean": 16.67,
+    "p50": 16.7,
+    "p95": 16.8,
+    "p99": 16.8,
+    "max": 16.8,
+    "over20": 0
+   },
+   "dropFps": {
+    "n": 102,
+    "fps": 59.4,
+    "mean": 16.83,
+    "p50": 16.7,
+    "p95": 16.7,
+    "p99": 16.8,
+    "max": 33.3,
+    "over20": 1
+   },
+   "stageFps": {
+    "n": 300,
+    "fps": 60,
+    "mean": 16.67,
+    "p50": 16.7,
+    "p95": 16.8,
+    "p99": 16.8,
+    "max": 16.8,
+    "over20": 0
+   },
+   "marks": [
+    [
+     "dance-stage:mount",
+     822
+    ],
+    [
+     "dance-stage:compiled",
+     965
+    ],
+    [
+     "dance-stage:first-frame",
+     976
+    ]
+   ],
+   "visibleAfterRelease": 1036,
+   "longtasksHold": [],
+   "longtasksDrop": [],
+   "heapAfter": 8.94,
+   "hitches": [],
+   "kitReadyAt": 588.5999999046326,
+   "webgl": {
+    "live": 1,
+    "created": 2,
+    "canvases": 1,
+    "stage": false
+   }
+  },
+  {
+   "cycle": 2,
+   "holdFps": {
+    "n": 204,
+    "fps": 60,
+    "mean": 16.67,
+    "p50": 16.7,
+    "p95": 16.8,
+    "p99": 16.8,
+    "max": 16.8,
+    "over20": 0
+   },
+   "dropFps": {
+    "n": 101,
+    "fps": 60,
+    "mean": 16.67,
+    "p50": 16.7,
+    "p95": 16.7,
+    "p99": 16.8,
+    "max": 16.8,
+    "over20": 0
+   },
+   "stageFps": {
+    "n": 299,
+    "fps": 60,
+    "mean": 16.67,
+    "p50": 16.7,
+    "p95": 16.8,
+    "p99": 16.8,
+    "max": 16.8,
+    "over20": 0
+   },
+   "marks": [
+    [
+     "dance-stage:mount",
+     815
+    ],
+    [
+     "dance-stage:compiled",
+     947
+    ],
+    [
+     "dance-stage:first-frame",
+     951
+    ]
+   ],
+   "visibleAfterRelease": 1006,
+   "longtasksHold": [],
+   "longtasksDrop": [],
+   "heapAfter": 9.32,
+   "hitches": [],
+   "kitReadyAt": -14427.400000095367,
+   "webgl": {
+    "live": 1,
+    "created": 3,
+    "canvases": 1,
+    "stage": false
+   }
+  }
+ ],
+ "fps_home": {
+  "n": 179,
+  "fps": 60,
+  "mean": 16.67,
+  "p50": 16.7,
+  "p95": 16.7,
+  "p99": 16.8,
+  "max": 16.8,
+  "over20": 0
+ },
+ "heap0": 6.71,
+ "console": [
+  "log: THREE.WebGLRenderer: Context Lost.",
+  "log: THREE.WebGLRenderer: Context Lost."
+ ]
+}

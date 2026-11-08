@@ -8,7 +8,7 @@ import { useResponsiveModel } from '../../hooks/useResponsiveModel.js';
 import { useMouseOverCanvas } from '../../hooks/useMouseOverCanvas.js';
 import { useDJAnimation } from '../../hooks/useDJAnimation.js';
 import { holdSync } from '../../audio/holdSync.js';
-import { WebGLRecovery } from '../../danceLab/useWebGLRecovery.js';
+import { WebGLRecovery } from '../../dance/useWebGLRecovery.js';
 
 // The deck pulses on the beat during the build-up: not at all at the start of the hold,
 // growing as the filter opens, strongest when the bar is full.
@@ -170,7 +170,7 @@ function DJModel({animation, setAnimation, ANIMATION, onActivate, zoomTrigger, s
 // already smooth the edges, so skip multisampling there (it multiplies the buffers ~4x).
 const HI_DPI = typeof window !== 'undefined' && window.devicePixelRatio >= 1.5;
 
-export default function DJScene({ animation, setAnimation, ANIMATION, onActivate, zoomTrigger, stageZoom }) {
+export default function DJScene({ animation, setAnimation, ANIMATION, onActivate, zoomTrigger, stageZoom, onPausedChange }) {
   // On the music stage the deck is hidden, so stop drawing it once the zoom-in has finished.
   // Leaving the stage resumes straight away (with a fresh clock, so the zoom-out doesn't jump).
   const [paused, setPaused] = useState(false);
@@ -179,6 +179,8 @@ export default function DJScene({ animation, setAnimation, ANIMATION, onActivate
     const timer = setTimeout(() => setPaused(true), stageZoom.seconds * 1000 + 100);
     return () => clearTimeout(timer);
   }, [stageZoom]);
+  // The music stage's crew only starts drawing once the deck has stopped (one WebGL scene rendering at a time).
+  useEffect(() => { onPausedChange?.(paused); }, [paused, onPausedChange]);
 
   // Bumped to remount the canvas (fresh WebGL context) if a lost context is never restored.
   const [glKey, setGlKey] = useState(0);

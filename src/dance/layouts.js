@@ -49,10 +49,13 @@ export const LAYOUTS = {
     // camera), and nobody hidden more than ~20% by a dancer in front. The lead is at the front, a little left of centre.
     // Desktop: the round-1 framing (a flat 13 deg camera with lots of air around the crew), spread ~9% wider than
     // round 1 (7.2 m). Clusters: the left pair (8, 4) + 6, then 2 / lead / 5 in the middle, 1 + 3 on the right, 7 alone.
-    // Portrait: the same bounding box as before (x -1.04..1.08, z -3.64..2.66), narrow at the front, wider at the back
-    // and 6.3 m deep, looked down on a little more, so 9 dancers fill a phone between the header and the space key
-    // (width is the limit there: every dancer needs +-0.9 m for arms + root wander). Groups: a front trio (lead, 1, 2),
-    // a mid pair (3, 4), 8 alone on the left, a back trio (5, 6, 7).
+    // Portrait (round 5, "less crowded"): spread wider (x -1.28..1.28) and deeper (7.7 m), looked down on more (24-30 deg,
+    // 30 at 390x844), staggered so nobody stands straight behind anybody. Dancers are ~14% smaller on a 390x844 phone
+    // (136 vs 158 px tall) for ~35% more space between them (nearest neighbour 0.66 vs 0.49 body heights); occlusion at
+    // 8.6 / 41.04 / 100 s is <= 7% there (<= 14% at 375x667 and 360x640, where the 24 deg floor keeps the rows apart).
+    // Width is the limit on a phone: every dancer needs +-0.9 m for arms + root wander. Rows: lead + 1 in front, 2 alone
+    // on the left, 3 / 4 mid (apart, they're a mirrored pair), 5 / 6, then 7 / 8 at the back; 8 (yellow hoodie) is kept
+    // away from 4 (the crew's one all-black look).
     slots(portrait) {
       const D = [
         [-0.38, 0.88, 6, 1],
@@ -62,15 +65,15 @@ export const LAYOUTS = {
         [3.5, 0.62, -22, 1], [-3.72, 0.22, 24, 1],
       ];
       const Pt = [
-        [-0.1, 2.66, 6, 1],
-        [0.52, 2.02, -16, 1], [-0.73, 1.49, 26, 1],
-        [0.73, -0.54, -30, 1], [-0.23, -0.23, 8, 1],
-        [0.3, -2.5, 18, 1], [-0.45, -3.38, -12, 1],
-        [1.08, -3.64, -28, 1], [-1.035, -1.5, 24, 1],
+        [-0.237, 3.66, 6, 1],
+        [0.48, 2.85, -16, 1], [-0.997, 1.74, 24, 1],
+        [1.06, 0.5, -26, 1], [-0.57, 0.12, 14, 1],
+        [0.332, -1.86, 16, 1], [-1.28, -1.62, -12, 1],
+        [1.282, -3.3, -26, 1], [-0.522, -4.02, 20, 1],
       ];
       return portrait ? Pt : D;
     },
-    fov: 30, elevation: [13, [18, 28]], travel: 1.0, desktopFrame: { top: 112, bottom: 150 },
+    fov: 30, elevation: [13, [24, 30]], travel: 1.0, desktopFrame: { top: 112, bottom: 150 },
   },
 };
 export const LAYOUT_KEYS = Object.keys(LAYOUTS);

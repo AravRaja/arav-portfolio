@@ -4,7 +4,7 @@ import {
   Bone, BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, IcosahedronGeometry, Matrix4,
   MeshLambertMaterial, Skeleton, SkinnedMesh, Uint16BufferAttribute, Vector3,
 } from 'three';
-import { MJ_TO_THREE } from '../rig.js';
+import { MJ_TO_THREE } from '../../dance/rig.js';
 import { BlobShadow, YELLOW } from './common.jsx';
 
 // D. Low-poly character: a faceted, flat-shaded person (hoodie, trousers, trainers, DJ headphones)

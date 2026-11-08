@@ -6,8 +6,8 @@ import { useFrame, useLoader } from '@react-three/fiber';
 import { Box3, DoubleSide, Mesh, MeshLambertMaterial, Vector3 } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { BIPED_ROLES, Retargeter } from './retarget.js';
-import { FootShadow, StageLights, addRim, headphonesGeometry } from './shared.jsx';
+import { BIPED_ROLES, Retargeter } from '../../../dance/retarget.js';
+import { FootShadow, StageLights, addRim, headphonesGeometry } from '../../../dance/shared.jsx';
 
 // bind-pose head bounds (stage space) from the vertices skinned to the head (or its face bones)
 function headBounds(model, head) {

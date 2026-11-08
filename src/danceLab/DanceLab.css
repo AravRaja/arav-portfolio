@@ -44,35 +44,7 @@
 .lab-space #stroke-top,
 .lab-space #stroke-bottom { stroke-dashoffset: 0; }
 
-/* Caption: the bracketed mono label style of the welcome page, small and muted */
-.dancer-caption {
-  position: fixed;
-  left: 50%;
-  bottom: 96px;
-  transform: translateX(-50%);
-  z-index: 6;
-  margin: 0;
-  width: max-content;
-  max-width: calc(100vw - 32px);
-  text-align: center;
-  font-size: 10px;
-  line-height: 1.5;
-  font-weight: 500;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.72);
-  pointer-events: none;
-  animation: caption-in 0.5s ease both;
-}
-.dancer-caption-tag {
-  color: #f0ff18;
-  font-weight: 600;
-  margin-right: 0.35em;
-}
-@keyframes caption-in {
-  from { opacity: 0; transform: translate(-50%, 4px); }
-  to { opacity: 1; transform: translate(-50%, 0); }
-}
+/* Caption: shared with the home page, see src/dance/DanceStage.css */
 
 /* dev panel */
 .lab-panel {
@@ -108,5 +80,4 @@
 
 @media (max-width: 900px) {
   .lab-panel { left: 8px; right: 8px; bottom: auto; top: 62px; max-width: none; opacity: 0.85; }
-  .dancer-caption { bottom: 94px; font-size: 9px; }
 }

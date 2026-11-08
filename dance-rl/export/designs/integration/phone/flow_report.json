@@ -1,0 +1,557 @@
+{
+ "profile": "phone",
+ "base": "http://localhost:5173",
+ "steps": [
+  {
+   "name": "home",
+   "stage": false,
+   "visible": false,
+   "blue": false,
+   "webglCanvases": 1,
+   "ctx": {
+    "created": 1,
+    "lost": 0
+   },
+   "label": "Hold Space to activate music"
+  },
+  {
+   "name": "stage",
+   "stage": true,
+   "visible": true,
+   "blue": true,
+   "webglCanvases": 2,
+   "ctx": {
+    "created": 2,
+    "lost": 0
+   },
+   "label": "Press Space to stop music",
+   "crewVisibleAfterRelease_ms": 941,
+   "marksAfterRelease_ms": [
+    [
+     "dance-stage:kit-ready",
+     -4289
+    ],
+    [
+     "dance-stage:mount",
+     812
+    ],
+    [
+     "dance-stage:mount",
+     812
+    ],
+    [
+     "dance-stage:compiled",
+     901
+    ],
+    [
+     "dance-stage:first-frame",
+     905
+    ]
+   ],
+   "crewCanvas": {
+    "buffer": [
+     585,
+     1266
+    ],
+    "css": [
+     390,
+     844
+    ],
+    "dpr": 1.5
+   },
+   "crewCam": {
+    "dist": 18.962923866134588,
+    "ppm": 269.38858544851763,
+    "wfill": 0.939999999998775,
+    "hfill": 0.9521493106370019,
+    "elevation": 30,
+    "w": 390,
+    "h": 844,
+    "top": 146,
+    "bottom": 118
+   },
+   "songTime": 8.913314025134047,
+   "gl": [
+    {
+     "cls": "djscene-canvas",
+     "geometries": 22,
+     "textures": 1,
+     "programs": 2,
+     "calls": 11,
+     "tris": 4050
+    },
+    {
+     "cls": "dance-stage-canvas",
+     "geometries": 10,
+     "textures": 11,
+     "programs": 3,
+     "calls": 10,
+     "tris": 71419
+    }
+   ]
+  },
+  {
+   "name": "longtasks",
+   "hold_to_release": [],
+   "release_to_plus3s": [],
+   "all": [
+    {
+     "start": 151,
+     "dur": 157
+    },
+    {
+     "start": 474.7,
+     "dur": 67
+    },
+    {
+     "start": 1018.7,
+     "dur": 60
+    }
+   ]
+  },
+  {
+   "name": "fps_stage",
+   "n": 299,
+   "fps": 60,
+   "mean": 16.67,
+   "p50": 16.7,
+   "p95": 16.7,
+   "p99": 16.8,
+   "max": 16.8,
+   "over20": 0
+  },
+  {
+   "name": "songclock_rate",
+   "wall_s": 3.003,
+   "song_s": 3.003,
+   "at": 17.51500422222222
+  },
+  {
+   "name": "fading",
+   "stage": false,
+   "visible": false,
+   "blue": false,
+   "webglCanvases": 1,
+   "ctx": {
+    "created": 2,
+    "lost": 0
+   },
+   "label": "Hold Space to activate music"
+  },
+  {
+   "name": "fading+1.1s",
+   "stage": false,
+   "visible": false,
+   "blue": false,
+   "webglCanvases": 1,
+   "ctx": {
+    "created": 2,
+    "lost": 1
+   },
+   "label": "Hold Space to activate music"
+  },
+  {
+   "name": "revived",
+   "stage": true,
+   "visible": true,
+   "blue": true,
+   "webglCanvases": 2,
+   "ctx": {
+    "created": 3,
+    "lost": 1
+   },
+   "label": "Press Space to stop music",
+   "songTime": 22.676641142857143
+  },
+  {
+   "name": "left",
+   "stage": false,
+   "visible": false,
+   "blue": false,
+   "webglCanvases": 1,
+   "ctx": {
+    "created": 3,
+    "lost": 2
+   },
+   "label": "Hold Space to activate music",
+   "gl": [
+    {
+     "cls": "djscene-canvas",
+     "geometries": 22,
+     "textures": 1,
+     "programs": 2,
+     "calls": 22,
+     "tris": 5866
+    }
+   ]
+  }
+ ],
+ "cycles": [
+  {
+   "cycle": 0,
+   "heapMB": 17.4,
+   "stage": false,
+   "visible": false,
+   "blue": false,
+   "webglCanvases": 1,
+   "ctx": {
+    "created": 3,
+    "lost": 2
+   },
+   "label": "Hold Space to activate music"
+  },
+  {
+   "cycle": 1,
+   "heapMB": 17.7,
+   "onStage": {
+    "stage": true,
+    "visible": true,
+    "blue": true,
+    "webglCanvases": 2,
+    "ctx": {
+     "created": 4,
+     "lost": 2
+    },
+    "label": "Press Space to stop music",
+    "gl": [
+     {
+      "cls": "djscene-canvas",
+      "geometries": 22,
+      "textures": 1,
+      "programs": 2,
+      "calls": 10,
+      "tris": 3864
+     },
+     {
+      "cls": "dance-stage-canvas",
+      "geometries": 10,
+      "textures": 11,
+      "programs": 3,
+      "calls": 10,
+      "tris": 71419
+     }
+    ]
+   },
+   "after": {
+    "stage": false,
+    "visible": false,
+    "blue": false,
+    "webglCanvases": 1,
+    "ctx": {
+     "created": 4,
+     "lost": 3
+    },
+    "label": "Hold Space to activate music",
+    "gl": [
+     {
+      "cls": "djscene-canvas",
+      "geometries": 22,
+      "textures": 1,
+      "programs": 2,
+      "calls": 22,
+      "tris": 5866
+     }
+    ]
+   }
+  },
+  {
+   "cycle": 2,
+   "heapMB": 18,
+   "onStage": {
+    "stage": true,
+    "visible": true,
+    "blue": true,
+    "webglCanvases": 2,
+    "ctx": {
+     "created": 5,
+     "lost": 3
+    },
+    "label": "Press Space to stop music",
+    "gl": [
+     {
+      "cls": "djscene-canvas",
+      "geometries": 22,
+      "textures": 1,
+      "programs": 2,
+      "calls": 11,
+      "tris": 4050
+     },
+     {
+      "cls": "dance-stage-canvas",
+      "geometries": 10,
+      "textures": 11,
+      "programs": 3,
+      "calls": 10,
+      "tris": 71419
+     }
+    ]
+   },
+   "after": {
+    "stage": false,
+    "visible": false,
+    "blue": false,
+    "webglCanvases": 1,
+    "ctx": {
+     "created": 5,
+     "lost": 4
+    },
+    "label": "Hold Space to activate music",
+    "gl": [
+     {
+      "cls": "djscene-canvas",
+      "geometries": 22,
+      "textures": 1,
+      "programs": 2,
+      "calls": 22,
+      "tris": 5866
+     }
+    ]
+   }
+  },
+  {
+   "cycle": 3,
+   "heapMB": 18.1,
+   "onStage": {
+    "stage": true,
+    "visible": true,
+    "blue": true,
+    "webglCanvases": 2,
+    "ctx": {
+     "created": 6,
+     "lost": 4
+    },
+    "label": "Press Space to stop music",
+    "gl": [
+     {
+      "cls": "djscene-canvas",
+      "geometries": 22,
+      "textures": 1,
+      "programs": 2,
+      "calls": 11,
+      "tris": 4050
+     },
+     {
+      "cls": "dance-stage-canvas",
+      "geometries": 10,
+      "textures": 11,
+      "programs": 3,
+      "calls": 10,
+      "tris": 71419
+     }
+    ]
+   },
+   "after": {
+    "stage": false,
+    "visible": false,
+    "blue": false,
+    "webglCanvases": 1,
+    "ctx": {
+     "created": 6,
+     "lost": 5
+    },
+    "label": "Hold Space to activate music",
+    "gl": [
+     {
+      "cls": "djscene-canvas",
+      "geometries": 22,
+      "textures": 1,
+      "programs": 2,
+      "calls": 22,
+      "tris": 5866
+     }
+    ]
+   }
+  },
+  {
+   "cycle": 4,
+   "heapMB": 18.2,
+   "onStage": {
+    "stage": true,
+    "visible": true,
+    "blue": true,
+    "webglCanvases": 2,
+    "ctx": {
+     "created": 7,
+     "lost": 5
+    },
+    "label": "Press Space to stop music",
+    "gl": [
+     {
+      "cls": "djscene-canvas",
+      "geometries": 22,
+      "textures": 1,
+      "programs": 2,
+      "calls": 11,
+      "tris": 4050
+     },
+     {
+      "cls": "dance-stage-canvas",
+      "geometries": 10,
+      "textures": 11,
+      "programs": 3,
+      "calls": 10,
+      "tris": 71419
+     }
+    ]
+   },
+   "after": {
+    "stage": false,
+    "visible": false,
+    "blue": false,
+    "webglCanvases": 1,
+    "ctx": {
+     "created": 7,
+     "lost": 6
+    },
+    "label": "Hold Space to activate music",
+    "gl": [
+     {
+      "cls": "djscene-canvas",
+      "geometries": 22,
+      "textures": 1,
+      "programs": 2,
+      "calls": 22,
+      "tris": 5866
+     }
+    ]
+   }
+  },
+  {
+   "cycle": 5,
+   "heapMB": 18.3,
+   "onStage": {
+    "stage": true,
+    "visible": true,
+    "blue": true,
+    "webglCanvases": 2,
+    "ctx": {
+     "created": 8,
+     "lost": 6
+    },
+    "label": "Press Space to stop music",
+    "gl": [
+     {
+      "cls": "djscene-canvas",
+      "geometries": 22,
+      "textures": 1,
+      "programs": 2,
+      "calls": 11,
+      "tris": 4050
+     },
+     {
+      "cls": "dance-stage-canvas",
+      "geometries": 10,
+      "textures": 11,
+      "programs": 3,
+      "calls": 10,
+      "tris": 71419
+     }
+    ]
+   },
+   "after": {
+    "stage": false,
+    "visible": false,
+    "blue": false,
+    "webglCanvases": 1,
+    "ctx": {
+     "created": 8,
+     "lost": 7
+    },
+    "label": "Hold Space to activate music",
+    "gl": [
+     {
+      "cls": "djscene-canvas",
+      "geometries": 22,
+      "textures": 1,
+      "programs": 2,
+      "calls": 22,
+      "tris": 5866
+     }
+    ]
+   }
+  }
+ ],
+ "contexts": {
+  "created": 8,
+  "lost": 7,
+  "list": [
+   {
+    "at": 694,
+    "cls": "",
+    "lost": false
+   },
+   {
+    "at": 12272,
+    "cls": "",
+    "lost": 23374
+   },
+   {
+    "at": 25190,
+    "cls": "",
+    "lost": 28526
+   },
+   {
+    "at": 37907,
+    "cls": "",
+    "lost": 40379
+   },
+   {
+    "at": 48454,
+    "cls": "",
+    "lost": 50907
+   },
+   {
+    "at": 59024,
+    "cls": "",
+    "lost": 61637
+   },
+   {
+    "at": 69738,
+    "cls": "",
+    "lost": 72206
+   },
+   {
+    "at": 80272,
+    "cls": "",
+    "lost": 82757
+   }
+  ]
+ },
+ "console": [
+  {
+   "t": 1794169193806,
+   "type": "log",
+   "text": "THREE.WebGLRenderer: Context Lost."
+  },
+  {
+   "t": 1794169198955,
+   "type": "log",
+   "text": "THREE.WebGLRenderer: Context Lost."
+  },
+  {
+   "t": 1794169210808,
+   "type": "log",
+   "text": "THREE.WebGLRenderer: Context Lost."
+  },
+  {
+   "t": 1794169221337,
+   "type": "log",
+   "text": "THREE.WebGLRenderer: Context Lost."
+  },
+  {
+   "t": 1794169232066,
+   "type": "log",
+   "text": "THREE.WebGLRenderer: Context Lost."
+  },
+  {
+   "t": 1794169242637,
+   "type": "log",
+   "text": "THREE.WebGLRenderer: Context Lost."
+  },
+  {
+   "t": 1794169253187,
+   "type": "log",
+   "text": "THREE.WebGLRenderer: Context Lost."
+  }
+ ]
+}

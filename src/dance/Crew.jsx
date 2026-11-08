@@ -1,6 +1,9 @@
-// 9-dancer crew on the music stage (/dance-lab?crew=L1..L4, key L cycles). Procedural toon bodies
-// (dvariants/proceduralBody.js) dressed by looks.js, each driven by the shared retargeter from a time-shifted /
-// mirrored copy of the exported trajectories (motion.js), placed by layouts.js.
+// 9-dancer crew on the music stage: the home page's DanceStage.jsx (L4, seed 7) and the dev lab (/dance-lab?crew=L1..L4,
+// key L cycles). Procedural toon bodies (proceduralBody.js) dressed by looks.js, each driven by the shared retargeter
+// from a time-shifted / mirrored copy of the exported trajectories (motion.js), placed by layouts.js.
+// The bodies can be prebuilt off the hot path (createCrewKit + buildNextDancer, one body per idle callback) and passed
+// in as `kit`; otherwise Crew builds them itself on mount (the lab). GPU buffers / programs are released on unmount
+// either way, while the CPU-side bodies in a kit stay cached for the next mount.
 // Draw calls: one skinned mesh per dancer (headphones merged into it, skinned to the head bone) + ONE instanced
 // mesh for all 27 contact-shadow blobs = 10.
 // `lineup` ('front' | 'back'): the 9 looks in a row in their bind pose (arms 40 deg out), for judging outfits / hair.
@@ -8,13 +11,14 @@ import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import {
-  BufferGeometry, CanvasTexture, Color, DynamicDrawUsage, Float32BufferAttribute, FrontSide, Group, InstancedBufferAttribute,
+  CanvasTexture, Color, DynamicDrawUsage, FrontSide, Group, InstancedBufferAttribute,
   InstancedMesh, MeshToonMaterial, Object3D, PlaneGeometry, ShaderMaterial, Skeleton, SkinnedMesh, Vector3,
 } from 'three';
-import { Retargeter } from '../designs/dvariants/retarget.js';
-import { buildDancer, headphoneFit } from '../designs/dvariants/proceduralBody.js';
-import { StageLights, addRim, getToonRamp, headphonesGeometry } from '../designs/dvariants/shared.jsx';
-import { Rig, loadFinale } from '../rig.js';
+import { Retargeter } from './retarget.js';
+import { StageLights, addRim, getToonRamp } from './shared.jsx';
+import { bodyFromData, buildCrewBodyData } from './crewBody.js';
+import { Rig, loadFinale } from './rig.js';
+import { loadCrewMeta } from './data.js';
 import { generateCrew, PALETTE } from './looks.js';
 import { CrewMotion } from './motion.js';
 import { LAYOUTS } from './layouts.js';
@@ -22,43 +26,63 @@ import { LAYOUTS } from './layouts.js';
 const TEMPLATE_LABEL = { cropHoodie: 'crop hoodie', teeDress: 'tee dress', allblack: 'all black', tee: 'tee + jeans' };
 
 // ---------- one dancer: procedural body (+ headphones merged in) on its own skeleton
-function buildCrewDancer(rig, look, materials) {
-  const o = look.outfit;
-  const B = buildDancer(o);
-  let { geometry, bones, root: skelRoot } = B.build();
-  let tris = B.tris;
-  if (o.headphones) {
-    const fit = headphoneFit(o); // sized to the head and the hair under it
-    const hp = headphonesGeometry({ c: fit.c, r: fit.r, cups: o.phonesCol || PALETTE.yellow, band: o.bandCol || '#14183a' });
-    const n = hp.attributes.position.count;
-    const head = B.idx.head;
-    const g = new BufferGeometry();
-    const cat = (k, extra) => new Float32BufferAttribute(Float32Array.from([...geometry.attributes[k].array, ...extra]), geometry.attributes[k].itemSize);
-    g.setAttribute('position', cat('position', hp.attributes.position.array));
-    g.setAttribute('normal', cat('normal', hp.attributes.normal.array));
-    g.setAttribute('color', cat('color', hp.attributes.color.array));
-    const si = new Uint16Array(geometry.attributes.skinIndex.array.length + n * 4);
-    si.set(geometry.attributes.skinIndex.array);
-    const sw = new Float32Array(si.length);
-    sw.set(geometry.attributes.skinWeight.array);
-    for (let i = 0, b = geometry.attributes.skinIndex.array.length; i < n; i++) { si[b + i * 4] = head; sw[b + i * 4] = 1; }
-    g.setAttribute('skinIndex', new (geometry.attributes.skinIndex.constructor)(si, 4));
-    g.setAttribute('skinWeight', new Float32BufferAttribute(sw, 4));
-    geometry = g;
-    tris += n / 3;
-  }
+// Two halves so they can be spread out: the body geometry (crewBody.js; the home page builds it in a worker), then the
+// skinning + retarget on the main thread.
+export function buildCrewBody(look) {
+  return bodyFromData(buildCrewBodyData(look.outfit));
+}
+
+export function rigCrewDancer(rig, look, materials, { geometry, bones, root: skelRoot, tris, sphere }) {
   const model = new Group();
   model.add(skelRoot);
-  const black = o.top === PALETTE.black;
+  const black = look.outfit.top === PALETTE.black;
   const mesh = new SkinnedMesh(geometry, black ? materials.black : materials.base);
   mesh.frustumCulled = false;
   model.add(mesh);
   model.updateMatrixWorld(true);
   mesh.bind(new Skeleton(bones));
+  // three would compute a skinned mesh's bounding sphere (every vertex through its bones) on its first render, just to
+  // sort it; the bind-pose sphere from the body build does (the crew isn't frustum-culled, so rough is fine)
+  mesh.boundingSphere = sphere.clone();
   const rt = new Retargeter(rig, model, (b) => b.name, { keepScale: true });
   const outer = new Group();
   outer.add(model);
   return { outer, model, rt, mesh, tris, look };
+}
+
+export function buildCrewDancer(rig, look, materials) {
+  return rigCrewDancer(rig, look, materials, buildCrewBody(look));
+}
+
+// the two toon materials every dancer uses (all-black looks get a stronger rim so they don't vanish on the blue)
+export function crewMaterials() {
+  return {
+    base: addRim(new MeshToonMaterial({ vertexColors: true, gradientMap: getToonRamp(), side: FrontSide }), { strength: 0.5, power: 2.6 }),
+    black: addRim(new MeshToonMaterial({ vertexColors: true, gradientMap: getToonRamp(), side: FrontSide }), { strength: 0.75, power: 2.4 }),
+  };
+}
+
+// A crew whose bodies are built ahead of time, half a body per buildNextDancer() call (~5-15 ms each on an M1), so the
+// caller can spread the work over idle callbacks and reuse the result across mounts. Returns true once all are built.
+export function createCrewKit(rig, seed = 7) {
+  return { rig, seed, looks: generateCrew(seed), materials: crewMaterials(), dancers: [], body: null };
+}
+export function buildNextDancer(kit) {
+  const i = kit.dancers.length;
+  if (i < kit.looks.length) {
+    if (!kit.body) kit.body = buildCrewBody(kit.looks[i]);
+    else { kit.dancers.push(rigCrewDancer(kit.rig, kit.looks[i], kit.materials, kit.body)); kit.body = null; }
+  }
+  return kit.dancers.length === kit.looks.length;
+}
+
+// Release the GPU side (buffers, programs, textures, bone textures) of everything a mounted crew used. three.js
+// re-uploads from the CPU copies if the same objects are drawn again, so a cached kit stays reusable.
+function releaseGpu(dancers, materials, shadows) {
+  for (const d of dancers) { d.mesh.geometry.dispose(); d.mesh.skeleton.dispose(); }
+  materials.base.dispose(); materials.black.dispose();
+  shadows.geometry.dispose(); shadows.material.dispose();
+  blobTexture().dispose(); getToonRamp().dispose();
 }
 
 // ---------- contact shadows: 3 blobs per dancer (feet + hips), one instanced draw call
@@ -152,7 +176,7 @@ function fitCameraAt(camera, w, h, boxes, { top, bottom, fov, elevation, side = 
   return { dist: hi, ppm: (y1 - y0) / 2.05, wfill: (x1 - x0) / w, hfill: (y1 - y0) / avail, elevation };
 }
 
-function CrewCamera({ slots, layout, top, bottom, portrait, lineup }) {
+function CrewCamera({ slots, layout, top, bottom, portrait, lineup, debug }) {
   const { camera, size } = useThree();
   useLayoutEffect(() => {
     const L = LAYOUTS[layout];
@@ -163,42 +187,49 @@ function CrewCamera({ slots, layout, top, bottom, portrait, lineup }) {
       : { top: t, bottom: b, fov: L.fov, elevation: L.elevation[portrait ? 1 : 0], arm: portrait ? (L.armPortrait ?? 0.6) : 0.75,
         wander: (portrait && L.wanderPortrait != null ? L.wanderPortrait : 0.3) * L.travel };
     const r = fitCamera(camera, size.width, size.height, slots.map(([x, z, , s]) => [x, z, s]), opts);
-    window.__crewCam = { ...r, w: size.width, h: size.height, top: t, bottom: b };
-  }, [camera, size.width, size.height, slots, layout, top, bottom, portrait, lineup]);
+    if (debug) window.__crewCam = { ...r, w: size.width, h: size.height, top: t, bottom: b };
+  }, [camera, size.width, size.height, slots, layout, top, bottom, portrait, lineup, debug]);
   return null;
 }
 
 // ---------- extra trajectories (public/dance/crew.json)
 const META_FALLBACK = { sections: [[0, 6], [6, 8], [8, 14], [14, 16], [16, 20], [20, 26], [26, 28], [28, 32]], sync_units: [0, 6, 8, 14, 16, 20, 26, 28], tracks: [] };
-function useCrewRigs(rig) {
+export async function loadCrewTracks(rig, meta = null) {
+  if (!meta) {
+    meta = META_FALLBACK;
+    try { meta = await loadCrewMeta(); } catch { /* fallback: finale only */ }
+  }
+  const rigs = [rig];
+  for (const tr of meta.tracks || []) {
+    try { rigs.push(new Rig(await loadFinale(tr.base))); } catch (e) { console.warn('[crew] track failed', tr.base, e); }
+  }
+  return { meta, rigs };
+}
+function useCrewRigs(rig, preset) {
   const [state, setState] = useState(null);
   useEffect(() => {
+    if (preset) return undefined;
     let alive = true;
-    (async () => {
-      let meta = META_FALLBACK;
-      try { meta = await (await fetch('/dance/crew.json')).json(); } catch { /* fallback: finale only */ }
-      const rigs = [rig];
-      for (const tr of meta.tracks || []) {
-        try { rigs.push(new Rig(await loadFinale(tr.base))); } catch (e) { console.warn('[crew] track failed', tr.base, e); }
-      }
-      if (alive) setState({ meta, rigs });
-    })();
+    loadCrewTracks(rig).then((r) => { if (alive) setState(r); });
     return () => { alive = false; };
-  }, [rig]);
-  return state;
+  }, [rig, preset]);
+  return preset || state;
 }
 
-export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7, lineup = null }) {
+// `kit`: prebuilt bodies (createCrewKit, all built); `tracks`: preloaded { meta, rigs } (loadCrewTracks). Both optional.
+export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7, lineup = null, kit = null, tracks = null, debug = import.meta.env.DEV }) {
   const { size } = useThree();
   const portrait = size.height > size.width;
-  const loaded = useCrewRigs(rig);
-  const looks = useMemo(() => generateCrew(seed), [seed]);
-  const materials = useMemo(() => ({
-    base: addRim(new MeshToonMaterial({ vertexColors: true, gradientMap: getToonRamp(), side: FrontSide }), { strength: 0.5, power: 2.6 }),
-    black: addRim(new MeshToonMaterial({ vertexColors: true, gradientMap: getToonRamp(), side: FrontSide }), { strength: 0.75, power: 2.4 }),
-  }), []);
-  const dancers = useMemo(() => looks.map((l) => buildCrewDancer(rig, l, materials)), [rig, looks, materials]);
+  const loaded = useCrewRigs(rig, tracks);
+  const own = useMemo(() => {
+    if (kit) return null;
+    const looks = generateCrew(seed);
+    const materials = crewMaterials();
+    return { looks, materials, dancers: looks.map((l) => buildCrewDancer(rig, l, materials)) };
+  }, [kit, rig, seed]);
+  const { looks, materials, dancers } = kit || own;
   const shadows = useMemo(() => makeShadows(dancers.length * 3), [dancers]);
+  useEffect(() => () => releaseGpu(dancers, materials, shadows), [dancers, materials, shadows]);
   const motion = useMemo(() => (loaded ? new CrewMotion(loaded.rigs, loaded.meta) : null), [loaded]);
   const L = LAYOUTS[layout] || LAYOUTS.L1;
   // a layout may show fewer dancers on a phone (L.mobileCount); the rest are built but not mounted
@@ -221,6 +252,7 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
   }, [shown, slots]);
 
   useEffect(() => {
+    if (!debug) return undefined;
     window.__crew = {
       looks, layout, seed, portrait, count, lineup,
       bodies: looks.map((l) => l.body).join(''),
@@ -235,7 +267,7 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
       tris: shown.reduce((a, d) => a + d.tris, 0),
     };
     return () => { delete window.__crew; };
-  }, [looks, layout, seed, portrait, loaded, motion, dancers, shown, count, lineup, rig, L]);
+  }, [looks, layout, seed, portrait, loaded, motion, dancers, shown, count, lineup, rig, L, debug]);
 
   const dummy = useMemo(() => new Object3D(), []);
   const fwd = useMemo(() => new Vector3(), []);
@@ -302,7 +334,7 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
 
   return (
     <>
-      <CrewCamera slots={slots} layout={layout} top={top} bottom={bottom} portrait={portrait} lineup={lineup} />
+      <CrewCamera slots={slots} layout={layout} top={top} bottom={bottom} portrait={portrait} lineup={lineup} debug={debug} />
       <StageLights keyLight={2.1} hemi={1.4} />
       <primitive object={shadows} />
       {shown.map((d, i) => <primitive key={i} object={d.outer} />)}

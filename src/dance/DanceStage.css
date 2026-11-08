@@ -1,0 +1,67 @@
+/* The crew on the home page's music stage. Sits above the stage's blue (the welcome container's ::after) and below the
+   intro text, the deck canvas and the space key; never takes pointer events. */
+.dance-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.38s ease;
+}
+.dance-stage.is-visible {
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+.dance-stage-canvas {
+  position: fixed !important;
+  inset: 0;
+  width: 100vw !important;
+  height: 100dvh !important;
+}
+/* the scale-in goes on the <canvas> itself: r3f sizes the drawing buffer from its wrapper's bounding box, which a
+   transform on the wrapper (or any ancestor) would shrink */
+.dance-stage-canvas canvas {
+  transform: scale(0.965);
+  transform-origin: 50% 60%;
+  transition: transform 0.38s ease;
+}
+.dance-stage.is-visible .dance-stage-canvas canvas {
+  transform: none;
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Caption under the crew (shared with the dev lab): the bracketed mono label style of the welcome page, small and
+   muted, between the crew and the space key */
+.dancer-caption {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  z-index: 6;
+  margin: 0;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  line-height: 1.5;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+  pointer-events: none;
+  animation: caption-in 0.5s ease both;
+}
+.dancer-caption-tag {
+  color: #f0ff18;
+  font-weight: 600;
+  margin-right: 0.35em;
+}
+@keyframes caption-in {
+  from { opacity: 0; transform: translate(-50%, 4px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@media (max-width: 900px) {
+  .dancer-caption { bottom: 94px; font-size: 9px; }
+}

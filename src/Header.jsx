@@ -68,6 +68,7 @@ export default function Header() {
     let stageTimer = 0;
     let settled = { at: 0, open: false }; // where the filter ends up once its current ramp finishes
     let anchor = { time: 0, offset: 0 }; // context time at which playback was at `offset`
+    let songAnchor = null; // after the drop: the song plays on (no loop) from `offset` at context time `time`
     const ctxNow = () => Tone.getContext().currentTime;
     const loopPosition = (time) => {
       const p = anchor.offset + (time - anchor.time);
@@ -106,6 +107,7 @@ export default function Header() {
       if (wait < 0.005) wait += grid; // too close to schedule; take the next one
       player.loop = false;
       player.restart(now + wait, P.dropHit);
+      songAnchor = { time: now + wait, offset: P.dropHit };
       stage(true, P.stageZoomIn);
     };
 
@@ -148,6 +150,7 @@ export default function Header() {
     const backToIntro = () => {
       clearTimeout(fadeTimer);
       dropped = false;
+      songAnchor = null;
       holdSync.songActive = false;
       song = 'on';
       playIntro(P.loopStart);
@@ -219,6 +222,27 @@ export default function Header() {
       const beat = (P.loopEnd - P.loopStart) / P.beatsPerBar;
       return 1 - (untilHitPoint(ctxNow() - latency) % beat) / beat;
     };
+    // Where the song is (seconds into the mp3) as it is heard right now, for visuals that dance to it: the intro loop's
+    // position before the drop hit, then the song's (through 'fading' and 'reviving'; it never loses its place). Uses
+    // the output timestamp so it already accounts for output latency and moves smoothly between audio callbacks.
+    // null when nothing is playing (not started yet, the song has ended, or the page is shutting down).
+    const heardTime = () => {
+      const raw = Tone.getContext().rawContext;
+      const native = raw._nativeContext || raw; // standardized-audio-context's wrapper doesn't pass these two through
+      try {
+        const ts = native.getOutputTimestamp?.();
+        if (ts && ts.contextTime > 0 && ts.performanceTime > 0) {
+          return Math.min(ctxNow(), ts.contextTime + Math.max(0, performance.now() - ts.performanceTime) / 1000);
+        }
+      } catch { /* not supported: fall back below */ }
+      return ctxNow() - (native.outputLatency || 0);
+    };
+    holdSync.songTime = () => {
+      if (!started || disposed || player.state !== 'started') return null;
+      const time = heardTime();
+      if (songAnchor && time >= songAnchor.time) return Math.min(songAnchor.offset + (time - songAnchor.time), player.buffer.duration || Infinity);
+      return loopPosition(time);
+    };
     holdSync.openness = () => {
       const k = Math.log(filter.frequency.value / P.muffledHz) / Math.log(P.openHz / P.muffledHz);
       return Math.min(1, Math.max(0, k));
@@ -266,6 +290,7 @@ export default function Header() {
       holdSync.openness = () => 0;
       holdSync.beatPhase = () => null;
       holdSync.songActive = false;
+      holdSync.songTime = () => null;
       clearTimeout(stageTimer);
       setOnStage(false);
       window.removeEventListener('pointerdown', begin);
