@@ -1,0 +1,8 @@
+{
+  "format": "dance-crew/1",
+  "note": "Crew sync structure for finale.json (units = 8-counts from grid_anchor). sections: [first unit, end unit) from dance_rl track_ref.song_units (v2 section ids); sync_units: the drop's first 8-count + the first 8-count of every section (the 1-bar breakdowns at 34.14, 68.14, 93.64, 121.26 s all fall inside them). tracks: extra full-song trajectories in finale format.",
+  "sections": [[0, 6], [6, 8], [8, 14], [14, 16], [16, 20], [20, 26], [26, 28], [28, 32]],
+  "sync_units": [0, 6, 8, 14, 16, 20, 26, 28],
+  "breakdowns": [[34.14, 36.26], [68.14, 70.26], [93.64, 95.76], [121.26, 123.4]],
+  "tracks": []
+}

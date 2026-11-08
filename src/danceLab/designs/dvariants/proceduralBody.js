@@ -6,14 +6,36 @@
 // Proportions (metres, bind pose: standing, arms 40 deg out, facing +z): 1.78 m tall, hip joints at
 // 0.93 m, thigh 0.42 + shin 0.415 (the MuJoCo humanoid's legs are 0.793 m; the retargeter scales the
 // root motion by the ratio, ~1.05, so the feet still plant where the rig's do).
+//
+// Body shapes (o.body = 'm' | 'f' | {overrides}): same 22-bone skeleton and retarget, different proportions.
+// 'f' has narrower shoulders, wider hip joints, a narrower waist and a bust implied by the torso loft (two extra
+// rings), slimmer arms / neck / hands, slightly smaller head and feet. Overall height is set by the caller
+// (scale the model), so the female look is shorter only on average. Defaults reproduce the original 'm' body
+// exactly (every factor is 1), so D4-D6 are unchanged.
+// Hair (o.hairStyle): crop (default) | none (buzz) | afro | curtains | ponytail | bob | puffs | braids, all
+// vertex-coloured geometry skinned to the head (ponytail / braids blend into the neck / chest towards the tip).
 import {
-  Bone, BufferGeometry, Color, Float32BufferAttribute, Group, Matrix4, SphereGeometry, Uint16BufferAttribute, Vector3,
+  Bone, BufferGeometry, Color, Euler, Float32BufferAttribute, Group, Matrix4, SphereGeometry, Uint16BufferAttribute, Vector3,
 } from 'three';
 
 const ARM_OUT = (40 * Math.PI) / 180;
 const v3 = (x, y, z) => new Vector3(x, y, z);
 
-export function skeletonDef() {
+export const BODY_SHAPES = {
+  m: { shoulder: 1, hipJ: 1, waist: 1, hip: 1, chest: 1, bust: 0, arm: 1, hand: 1, thigh: 1, calf: 1, neck: 1, head: 1, foot: 1 },
+  f: { shoulder: 0.9, hipJ: 1.07, waist: 0.84, hip: 1.1, chest: 0.93, bust: 1, arm: 0.85, hand: 0.88, thigh: 1.05, calf: 0.9, neck: 0.86, head: 0.95, foot: 0.9 },
+};
+export const bodyShape = (o = {}) => (o.body && typeof o.body === 'object' ? { ...BODY_SHAPES.m, ...o.body } : BODY_SHAPES[o.body] || BODY_SHAPES.m);
+
+// how much bigger than the default crop each hairstyle is around the crown: hats and headphones are scaled by it
+export const HAIR_VOLUME = { crop: 1, none: 1, afro: 1.42, curtains: 1.05, ponytail: 1.03, bob: 1.16, puffs: 1.03, braids: 1.03 };
+// headphones placement for a look (Crew merges them into the body, skinned to the head)
+export function headphoneFit(o = {}) {
+  const S = bodyShape(o);
+  return { c: v3(0, 1.68, 0.006), r: 0.087 * S.head * (HAIR_VOLUME[o.hairStyle || 'crop'] || 1) };
+}
+
+export function skeletonDef(S = BODY_SHAPES.m) {
   const J = {
     hips: [null, v3(0, 0.975, 0)],
     spine: ['hips', v3(0, 1.05, -0.005)],
@@ -24,15 +46,15 @@ export function skeletonDef() {
   };
   for (const [s, x] of [['l', 1], ['r', -1]]) {
     const dir = v3(x * Math.sin(ARM_OUT), -Math.cos(ARM_OUT), 0);
-    const sh = v3(x * 0.185, 1.44, -0.025);
+    const sh = v3(x * 0.185 * S.shoulder, 1.44, -0.025);
     const el = sh.clone().addScaledVector(dir, 0.29);
     const wr = el.clone().addScaledVector(dir, 0.255);
     Object.assign(J, {
-      [`${s}_clav`]: ['chest', v3(x * 0.035, 1.43, -0.01)],
+      [`${s}_clav`]: ['chest', v3(x * 0.035 * S.shoulder, 1.43, -0.01)],
       [`${s}_upperArm`]: [`${s}_clav`, sh],
       [`${s}_foreArm`]: [`${s}_upperArm`, el],
       [`${s}_hand`]: [`${s}_foreArm`, wr],
-      [`${s}_thigh`]: ['hips', v3(x * 0.095, 0.93, 0)],
+      [`${s}_thigh`]: ['hips', v3(x * 0.095 * S.hipJ, 0.93, 0)],
       [`${s}_calf`]: [`${s}_thigh`, v3(x * 0.1, 0.51, 0.005)],
       [`${s}_foot`]: [`${s}_calf`, v3(x * 0.105, 0.095, -0.01)],
       [`${s}_toe`]: [`${s}_foot`, v3(x * 0.108, 0.03, 0.135)],
@@ -44,8 +66,8 @@ export function skeletonDef() {
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 export class BodyBuilder {
-  constructor() {
-    this.J = skeletonDef();
+  constructor(shape) {
+    this.J = skeletonDef(shape);
     this.names = Object.keys(this.J);
     this.idx = Object.fromEntries(this.names.map((n, i) => [n, i]));
     this.parts = []; // non-indexed { pos, nor, col, si, sw }
@@ -129,7 +151,7 @@ export class BodyBuilder {
 
   // ellipsoid from a sphere: centre, radii (along basis axes ax, ay, az), weights, colour,
   // keep(unitPoint) to drop triangles (e.g. hair only on the crown)
-  ellipsoid(c, r, w, col, { ws = 20, hs = 14, basis = null, keep = null } = {}) {
+  ellipsoid(c, r, w, col, { ws = 20, hs = 14, basis = null, keep = null, inside = false } = {}) {
     const s = new SphereGeometry(1, ws, hs);
     const pos = s.attributes.position, idx = s.index.array;
     const M = basis ? basis.clone() : new Matrix4();
@@ -145,7 +167,8 @@ export class BodyBuilder {
         for (let j = 0; j < 3; j++) m.add(new Vector3(pos.getX(idx[f + j]), pos.getY(idx[f + j]), pos.getZ(idx[f + j])));
         if (!keep(m.divideScalar(3))) continue;
       }
-      index.push(idx[f], idx[f + 1], idx[f + 2]);
+      if (inside) index.push(idx[f], idx[f + 2], idx[f + 1]); // liner: faces (and normals) point inwards
+      else index.push(idx[f], idx[f + 1], idx[f + 2]);
       faceCol.push(typeof col === 'function' ? col(P[idx[f]]) : col);
     }
     this._emit(P, Wt, faceCol, index);
@@ -174,8 +197,115 @@ export class BodyBuilder {
 // ---------- body parts ----------
 const C = (h) => new Color(h);
 
+// waist / hip / chest / shoulder width factor along the trunk, for shape S (all 1 for 'm'). `fit` < 1 damps the
+// waist and chest shaping under oversized tops (hips and shoulders are skeletal, so they stay).
+function trunkProfile(S, fit = 1) {
+  const waist = 1 + (S.waist - 1) * fit, chest = 1 + (S.chest - 1) * fit;
+  const K = [[0.88, S.hip], [0.97, S.hip], [1.06, (S.hip + waist) / 2], [1.14, waist], [1.22, (waist + chest) / 2], [1.3, chest],
+    [1.39, S.shoulder], [1.46, S.shoulder], [1.5, (1 + S.shoulder) / 2]];
+  return (y) => {
+    if (y <= K[0][0]) return K[0][1];
+    for (let i = 1; i < K.length; i++) {
+      if (y <= K[i][0]) { const t = (y - K[i - 1][0]) / (K[i][0] - K[i - 1][0]); return K[i - 1][1] + (K[i][1] - K[i - 1][1]) * t; }
+    }
+    return K[K.length - 1][1];
+  };
+}
+// forward bulge (m) of the chest at height y: a soft gaussian, pushed forward only (the back stays)
+const bustAt = (S, y, fit = 1) => (S.bust ? S.bust * fit * 0.018 * Math.exp(-(((y - 1.29) / 0.05) ** 2)) : 0);
+
+// hair: built around head centre hc, head scale hs. `hatY` (when a hat is worn) drops hair above the hat line.
+function addHair(B, o, hc, hs, hair, ovs) {
+  const style = o.hairStyle || 'crop';
+  if (style === 'none') return;
+  const H = { head: 1 };
+  const hatY = o.hat === 'bucket' ? 1.72 : o.hat === 'cap' ? 1.705 : Infinity;
+  const off = (x, y, z) => hc.clone().add(v3(x * hs, y * hs, z * hs));
+  const crown = (u) => u.y > 0.25 - 0.55 * Math.max(0, -u.z) || (u.z < -0.35 && u.y > -0.45);
+  const shell = (grow = 1, keep = crown) => B.ellipsoid(off(0, 0.006, -0.006), [0.089 * hs * grow, 0.112 * hs * grow, 0.1 * hs * grow], H, hair, {
+    ws: 24, hs: 16, keep: hatY < Infinity && grow !== 1 ? (u) => keep(u) && hc.y + u.y * 0.112 * hs * grow < hatY + 0.03 : keep,
+  });
+  const tie = C(o.hairTie || '#f0ff18');
+  // a strand (ponytail / braid) along a polyline: radius per point, weights head -> neck / chest towards the tip
+  const strand = (pts, rad, n, colFn, wfn) => {
+    const rings = pts.map((c, i) => {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+      return { c, t: b.clone().sub(a), ref: v3(1, 0, 0), rx: rad[i], ry: rad[i] * 0.9, wfn, col: colFn ? colFn(i, pts.length) : hair };
+    });
+    B.tube(rings, n, { capStart: 'dome', capEnd: 'dome', domeDepth: 0.8 });
+  };
+  const neckBlend = (y0, y1) => (pt) => { const h = smooth(y1, y0, pt.y); return { head: h, neck: (1 - h) * 0.6, chest: (1 - h) * 0.4 }; };
+  const backBlend = (pt) => { const h = smooth(1.46, 1.62, pt.y); return { head: h, chest: 1 - h }; };
+  const curve = (P, k) => { // Catmull-Rom through P, k samples per span
+    const out = [];
+    for (let i = 0; i < P.length - 1; i++) {
+      const p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(P.length - 1, i + 2)];
+      for (let j = 0; j < k; j++) {
+        const t = j / k, t2 = t * t, t3 = t2 * t;
+        out.push(v3(0, 0, 0).addScaledVector(p0, -0.5 * t3 + t2 - 0.5 * t).addScaledVector(p1, 1.5 * t3 - 2.5 * t2 + 1)
+          .addScaledVector(p2, -1.5 * t3 + 2 * t2 + 0.5 * t).addScaledVector(p3, 0.5 * t3 - 0.5 * t2));
+      }
+    }
+    out.push(P[P.length - 1].clone());
+    return out;
+  };
+
+  if (style === 'crop') { shell(); return; }
+  if (style === 'afro') {
+    shell(1.01);
+    B.ellipsoid(off(0, 0.062, -0.046), [0.132 * hs, 0.12 * hs, 0.13 * hs], H, hair, { ws: 22, hs: 16 });
+    return;
+  }
+  if (style === 'puffs') {
+    shell(1.02);
+    for (const x of [1, -1]) {
+      B.ellipsoid(off(x * 0.066, 0.088, -0.03), [0.05 * hs, 0.048 * hs, 0.05 * hs], H, hair, { ws: 16, hs: 12 });
+      B.ellipsoid(off(x * 0.055, 0.06, -0.022), [0.03 * hs, 0.012 * hs, 0.03 * hs], H, tie, { ws: 12, hs: 6 });
+    }
+    return;
+  }
+  if (style === 'curtains') {
+    shell(1.05, (u) => u.y > 0.2 - 0.6 * Math.max(0, -u.z) || (u.z < -0.3 && u.y > -0.5));
+    for (const x of [1, -1]) {
+      // a lock either side of a centre parting, drooping outwards over the temples
+      const basis = new Matrix4().makeRotationFromEuler(new Euler(-0.35, x * 0.25, -x * 0.55));
+      B.ellipsoid(off(x * 0.046, 0.058, 0.074), [0.052 * hs, 0.02 * hs, 0.036 * hs], H, hair, { ws: 14, hs: 8, basis });
+    }
+    return;
+  }
+  if (style === 'bob') {
+    // chin-length bell: crown + sides + back down to the jaw, a window for the face (straight fringe at the brow).
+    // An inward-facing liner closes the shell so no stage shows between the hair and the cheeks.
+    const keep = (u) => (u.y > 0.32 || u.z < 0.2) && u.y > -0.62 && (hatY === Infinity || hc.y + u.y * 0.122 * hs < hatY + 0.03);
+    B.ellipsoid(off(0, -0.004, -0.012), [0.104 * hs, 0.122 * hs, 0.114 * hs], H, hair, { ws: 26, hs: 18, keep });
+    B.ellipsoid(off(0, -0.004, -0.012), [0.1 * hs, 0.118 * hs, 0.11 * hs], H, C(o.hair).multiplyScalar(0.7), { ws: 26, hs: 18, keep, inside: true });
+    return;
+  }
+  if (style === 'ponytail') {
+    shell(1.03, (u) => u.y > 0.18 - 0.6 * Math.max(0, -u.z) || (u.z < -0.3 && u.y > -0.55));
+    const base = off(0, 0.05, -0.1);
+    B.ellipsoid(base.clone().add(v3(0, 0, -0.008)), [0.024 * hs, 0.024 * hs, 0.014 * hs], H, tie, { ws: 12, hs: 8 });
+    const P = curve([base.clone().add(v3(0, 0, -0.012)), off(0, 0.01, -0.165), off(0, -0.07, -0.19), off(0, -0.16, -0.18), off(0, -0.23, -0.16)], 4);
+    const rad = P.map((_, i) => { const t = i / (P.length - 1); return (0.032 + 0.022 * Math.sin(Math.PI * Math.min(1, t * 1.6)) * (1 - t * 0.5)) * hs * (1 - 0.7 * t ** 2); });
+    strand(P, rad, 12, null, neckBlend(1.66, 1.46));
+    return;
+  }
+  if (style === 'braids') {
+    // a bundle of three plaits from the back of the head down onto the upper back
+    shell(1.03, (u) => u.y > 0.2 - 0.6 * Math.max(0, -u.z) || (u.z < -0.3 && u.y > -0.55));
+    const backZ = (y) => -(0.015 + (y > 1.42 ? 0.112 : 0.13) * ovs + (o.hood && y > 1.4 && y < 1.58 ? 0.07 : 0.025));
+    for (const x of [-0.024, 0, 0.024]) {
+      const P = curve([off(x, 0.0, -0.088), off(x * 1.1, -0.075, -0.112), v3(x * 1.2 * hs, 1.5, Math.min(-0.15, backZ(1.5))),
+        v3(x * 1.25 * hs, 1.4, backZ(1.4)), v3(x * 1.3 * hs, 1.3 - Math.abs(x) * 1.5, backZ(1.3))], 5);
+      const rad = P.map((_, i) => 0.0135 * hs * (1 + 0.28 * Math.abs(Math.sin(i * 1.6))) * (i === P.length - 1 ? 0.7 : 1));
+      strand(P, rad, 8, null, backBlend);
+    }
+  }
+}
+
 export function buildDancer(o) {
-  const B = new BodyBuilder();
+  const S = bodyShape(o);
+  const B = new BodyBuilder(S);
   const p = (n) => B.p(n);
   const X = v3(1, 0, 0), Y = v3(0, 1, 0), Z = v3(0, 0, 1);
   const skin = C(o.skin), hair = C(o.hair);
@@ -186,20 +316,16 @@ export function buildDancer(o) {
   const ovs = o.oversize ?? 1; // top width factor
 
   // --- head, face, hair, neck
+  const hs = S.head, nk = S.neck;
   const hc = v3(0, 1.675, 0.012);
-  B.ellipsoid(hc, [0.083, 0.106, 0.096], { head: 1 }, skin, { ws: 24, hs: 16 });
-  B.ellipsoid(v3(0, 1.655, 0.103), [0.016, 0.026, 0.02], { head: 1 }, skin, { ws: 10, hs: 6 }); // nose
-  for (const x of [1, -1]) B.ellipsoid(v3(x * 0.083, 1.668, 0.0), [0.014, 0.03, 0.022], { head: 1 }, skin, { ws: 10, hs: 6 });
-  if (o.hairStyle !== 'none') {
-    // short crop: a shell over the crown and the back, down to the nape
-    B.ellipsoid(hc.clone().add(v3(0, 0.006, -0.006)), [0.089, 0.112, 0.1], { head: 1 }, hair, {
-      ws: 24, hs: 16, keep: (u) => u.y > 0.25 - 0.55 * Math.max(0, -u.z) || (u.z < -0.35 && u.y > -0.45),
-    });
-  }
+  B.ellipsoid(hc, [0.083 * hs, 0.106 * hs, 0.096 * hs], { head: 1 }, skin, { ws: 24, hs: 16 });
+  B.ellipsoid(v3(0, 1.655, 0.012 + 0.091 * hs), [0.016 * hs, 0.026 * hs, 0.02 * hs], { head: 1 }, skin, { ws: 10, hs: 6 }); // nose
+  for (const x of [1, -1]) B.ellipsoid(v3(x * 0.083 * hs, 1.668, 0.0), [0.014, 0.03 * hs, 0.022 * hs], { head: 1 }, skin, { ws: 10, hs: 6 });
+  addHair(B, o, hc, hs, hair, ovs);
   B.tube([
-    { c: v3(0, 1.43, -0.02), t: Y, ref: X, rx: 0.056, ry: 0.052, w: { chest: 1 }, col: skin },
-    { c: v3(0, 1.52, -0.02), t: Y, ref: X, rx: 0.05, ry: 0.048, w: { neck: 1 }, col: skin },
-    { c: v3(0, 1.6, -0.01), t: Y, ref: X, rx: 0.048, ry: 0.046, w: { head: 1 }, col: skin },
+    { c: v3(0, 1.43, -0.02), t: Y, ref: X, rx: 0.056 * nk, ry: 0.052 * nk, w: { chest: 1 }, col: skin },
+    { c: v3(0, 1.52, -0.02), t: Y, ref: X, rx: 0.05 * nk, ry: 0.048 * nk, w: { neck: 1 }, col: skin },
+    { c: v3(0, 1.6, -0.01), t: Y, ref: X, rx: 0.048 * nk, ry: 0.046 * nk, w: { head: 1 }, col: skin },
   ], 14, { capStart: false, capEnd: false });
 
   // --- torso garment (hoodie / jacket / tee): boxy superellipse rings, hips -> shoulders
@@ -218,16 +344,25 @@ export function buildDancer(o) {
     return w;
   };
   // the hem stays at/above the hip joints: lower and the thighs poke through it when they swing
-  const hemY = o.topLength === 'cropped' ? 1.0 : o.topLength === 'long' ? 0.905 : 0.935;
-  const tr = (y, rx, rz, extra = {}) => ({ c: v3(0, y, -0.015 + (extra.dz || 0)), t: Y, ref: X, rx: rx * ovs, ry: rz * ovs, p: extra.p || 2.7, wfn: trunkW, col: extra.col || top, colFn: extra.colFn });
+  // cropped: short (hem at the waist); crop: a real crop top, hem above high-waisted trousers (a strip of midriff)
+  const hemY = o.topLength === 'crop' ? 1.115 : o.topLength === 'cropped' ? 1.0 : o.topLength === 'long' ? 0.905 : 0.935;
+  const fit = 1 - Math.min(0.6, Math.max(0, (ovs - 1) * 4)); // oversized tops hide the waist
+  const fx = trunkProfile(S, fit);
+  const tr = (y, rx, rz, extra = {}) => {
+    const b = bustAt(S, y, fit);
+    return { c: v3(0, y, -0.015 + (extra.dz || 0) + b * 0.9), t: Y, ref: X, rx: rx * ovs * fx(y), ry: rz * ovs + b, p: extra.p || 2.7, wfn: trunkW, col: extra.col || top, colFn: extra.colFn };
+  };
   const zipFn = null;
+  const hemCol = o.dress ? top : topDark;
   const trunkRings = [
-    tr(hemY - 0.01, 0.185, 0.125, { col: topDark }),
-    tr(hemY + 0.035, 0.188, 0.128, { col: topDark }),
+    tr(hemY - 0.01, 0.185, 0.125, { col: hemCol }),
+    tr(hemY + 0.035, 0.188, 0.128, { col: hemCol }),
     tr(hemY + 0.05, 0.186, 0.127, { colFn: zipFn }),
-    tr(1.06, 0.18, 0.124, { colFn: zipFn }),
+    ...(hemY + 0.05 < 1.06 ? [tr(1.06, 0.18, 0.124, { colFn: zipFn })] : []),
     tr(1.18, 0.182, 0.128, { colFn: zipFn }),
+    ...(S.bust ? [tr(1.245, 0.188, 0.13, { colFn: zipFn })] : []),
     tr(1.3, 0.195, 0.132, { colFn: zipFn }),
+    ...(S.bust ? [tr(1.345, 0.2, 0.129, { colFn: zipFn })] : []),
     tr(1.39, 0.205, 0.125, { colFn: zipFn }),
     tr(1.45, 0.19, 0.105, { p: 2.3, colFn: zipFn }),
     tr(1.485, 0.12, 0.08, { p: 2.0 }),
@@ -260,15 +395,16 @@ export function buildDancer(o) {
   if (o.pocket) {
     // kangaroo pocket: a shallow slab across the belly
     const z = (0.127 * ovs) - 0.015 + 0.006;
+    const py = 1.0 + (hemY - 0.9), pk = Math.min(1, fx(py));
     B.tube([-0.11, -0.04, 0.04, 0.11].map((x, i) => ({
-      c: v3(x, 1.0 + (hemY - 0.9), z), t: X, ref: Y, rx: i === 0 || i === 3 ? 0.05 : 0.06, ry: 0.012, p: 4, wfn: trunkW, col: topDark,
+      c: v3(x * pk, py, z), t: X, ref: Y, rx: i === 0 || i === 3 ? 0.05 : 0.06, ry: 0.012, p: 4, wfn: trunkW, col: topDark,
     })), 10, { capStart: 'dome', capEnd: 'dome', domeDepth: 0.3 });
   }
   if (o.strings) {
     for (const x of [0.035, -0.035]) {
       B.tube([
         { c: v3(x, 1.465, 0.095 * ovs), t: v3(0, -1, 0.15), ref: X, rx: 0.006, ry: 0.006, w: { chest: 1 }, col: C(o.strings) },
-        { c: v3(x * 1.15, 1.34, 0.125 * ovs), t: v3(0, -1, 0.15), ref: X, rx: 0.006, ry: 0.006, w: { chest: 1 }, col: C(o.strings) },
+        { c: v3(x * 1.15, 1.34, 0.125 * ovs + bustAt(S, 1.34, fit) * 1.9), t: v3(0, -1, 0.15), ref: X, rx: 0.006, ry: 0.006, w: { chest: 1 }, col: C(o.strings) },
       ], 6);
     }
   }
@@ -282,6 +418,7 @@ export function buildDancer(o) {
     const at = (q, f) => q.clone().addScaledVector(d, f);
     const sleeveCol = stripe ? (k, n) => (k === n - 1 || k === 0 ? stripe : top) : null;
     const short = o.sleeves === 'short';
+    const am = S.arm, hm = S.hand;
     const sl = [
       { c: at(sh, -0.035), rx: 0.072 * ovs, ry: 0.07 * ovs, w: { chest: 0.55, [ua]: 0.45 } },
       { c: at(sh, 0.04), rx: 0.068 * ovs, ry: 0.064 * ovs, w: { chest: 0.15, [ua]: 0.85 } },
@@ -299,7 +436,7 @@ export function buildDancer(o) {
         { c: at(wr, -0.01), rx: 0.04, ry: 0.037, w: { [fa]: 0.8, [hd]: 0.2 }, col: topDark },
       );
     }
-    B.tube(sl.map((r) => ({ t: d, ref: out, col: top, colFn: r.col ? null : sleeveCol, ...r })), 18, { capStart: 'dome', capEnd: false });
+    B.tube(sl.map((r) => ({ t: d, ref: out, col: top, colFn: r.col ? null : sleeveCol, ...r, rx: r.rx * am, ry: r.ry * am })), 18, { capStart: 'dome', capEnd: false });
     if (short) {
       // bare forearm: elbow -> wrist in skin
       B.tube([
@@ -309,28 +446,39 @@ export function buildDancer(o) {
         { c: at(el, 0.05), rx: 0.04, ry: 0.037, w: { [ua]: 0.15, [fa]: 0.85 } },
         { c: at(wr, -0.04), rx: 0.03, ry: 0.025, w: { [fa]: 1 } },
         { c: at(wr, 0.0), rx: 0.03, ry: 0.024, w: { [fa]: 0.6, [hd]: 0.4 } },
-      ].map((r) => ({ t: d, ref: out, col: skin, ...r })), 14, { capStart: false, capEnd: false });
+      ].map((r) => ({ t: d, ref: out, col: skin, ...r, rx: r.rx * am, ry: r.ry * am })), 14, { capStart: false, capEnd: false });
     }
     // wrist: closes the open cuff so the stage never shows through the sleeve
     B.tube([
       { c: at(wr, -0.07), rx: 0.034, ry: 0.03, w: { [fa]: 1 } },
       { c: at(wr, 0.0), rx: 0.03, ry: 0.025, w: { [fa]: 0.5, [hd]: 0.5 } },
       { c: at(wr, 0.03), rx: 0.03, ry: 0.024, w: { [hd]: 1 } },
-    ].map((r) => ({ t: d, ref: out, col: skin, ...r })), 12, { capStart: 'dome', capEnd: false });
+    ].map((r) => ({ t: d, ref: out, col: skin, ...r, rx: r.rx * am, ry: r.ry * am })), 12, { capStart: 'dome', capEnd: false });
     // hand: a mitten (palm + fingers) and a thumb, palm facing the thigh
     const hb = new Matrix4().makeBasis(out.clone(), d.clone().negate(), Z.clone()); // x across the palm normal, y up the arm
-    B.ellipsoid(at(wr, 0.055), [0.022, 0.06, 0.042], { [hd]: 1 }, skin, { ws: 14, hs: 10, basis: hb });
-    B.ellipsoid(at(wr, 0.035).addScaledVector(Z, 0.035).addScaledVector(out, -0.008), [0.014, 0.03, 0.014], { [hd]: 1 }, skin, { ws: 8, hs: 6, basis: hb });
+    B.ellipsoid(at(wr, 0.055 * hm), [0.022 * hm, 0.06 * hm, 0.042 * hm], { [hd]: 1 }, skin, { ws: 14, hs: 10, basis: hb });
+    B.ellipsoid(at(wr, 0.035 * hm).addScaledVector(Z, 0.035 * hm).addScaledVector(out, -0.008), [0.014 * hm, 0.03 * hm, 0.014 * hm], { [hd]: 1 }, skin, { ws: 8, hs: 6, basis: hb });
   }
 
   // --- trousers: seat + two legs
   const hipJ = { l: p('l_thigh'), r: p('r_thigh') };
   const seatW = () => ({ hips: 1 });
+  const sb = Math.min(1.08, baggy);
+  const fp = trunkProfile(S); // trousers follow the body's own waist / hips (no oversize damping)
+  const highWaist = o.highWaist ? [ // up to the natural waist; the top rings follow the spine like the top does
+    { c: v3(0, 1.055, -0.015), t: Y, ref: X, rx: 0.168 * sb * fp(1.055), ry: 0.116, p: 2.6, wfn: trunkW, col: pants },
+    { c: v3(0, 1.085, -0.015), t: Y, ref: X, rx: 0.164 * sb * fp(1.085), ry: 0.114, p: 2.6, wfn: trunkW, col: o.waistband ? C(o.waistband) : pants },
+  ] : [];
   B.tube([
-    { c: v3(0, 1.02, -0.015), t: Y, ref: X, rx: 0.172 * Math.min(1.08, baggy), ry: 0.118, p: 2.6, wfn: seatW, col: pants },
-    { c: v3(0, 0.95, -0.012), t: Y, ref: X, rx: 0.178 * Math.min(1.08, baggy), ry: 0.122, p: 2.6, wfn: seatW, col: pants },
-    { c: v3(0, 0.88, -0.006), t: Y, ref: X, rx: 0.155 * Math.min(1.08, baggy), ry: 0.112, p: 2.4, wfn: seatW, col: pants },
-  ].reverse(), 24, { capStart: 'dome', capEnd: false, domeDepth: 0.35 });
+    { c: v3(0, 0.88, -0.006), t: Y, ref: X, rx: 0.155 * sb * S.hip, ry: 0.112, p: 2.4, wfn: seatW, col: pants },
+    { c: v3(0, 0.95, -0.012), t: Y, ref: X, rx: 0.178 * sb * S.hip, ry: 0.122, p: 2.6, wfn: seatW, col: pants },
+    { c: v3(0, 1.02, -0.015), t: Y, ref: X, rx: 0.172 * sb * fp(1.02), ry: 0.118, p: 2.6, wfn: seatW, col: pants },
+    ...highWaist,
+  ], 24, { capStart: 'dome', capEnd: false, domeDepth: 0.35 });
+  if (o.midriff) {
+    // the strip of skin between a crop top and high-waisted trousers (closes the gap, sits inside both)
+    B.tube([1.06, 1.1, 1.135].map((y) => ({ c: v3(0, y, -0.015), t: Y, ref: X, rx: 0.155 * fp(y), ry: 0.106, p: 2.6, wfn: trunkW, col: skin })), 24, { capStart: false, capEnd: false });
+  }
   if (o.belt) {
     B.tube([
       { c: v3(0, 1.01, -0.015), t: Y, ref: X, rx: 0.176, ry: 0.122, p: 2.6, w: { hips: 1 }, col: C(o.belt) },
@@ -343,35 +491,37 @@ export function buildDancer(o) {
     const dt = kn.clone().sub(hip).normalize(), ds = an.clone().sub(kn).normalize();
     const out = v3(x, 0, 0);
     const legCol = stripe ? (k, n) => (k === n - 1 || k === 0 ? stripe : pants) : null;
-    const b = baggy;
+    const bt = baggy * S.thigh, bc = baggy * S.calf, bk = (bt + bc) / 2;
     const L = [
-      { c: hip.clone().addScaledVector(dt, -0.03), t: dt, rx: 0.088 * b, ry: 0.09 * b, w: { hips: 0.7, [th]: 0.3 } },
-      { c: hip.clone().addScaledVector(dt, 0.07), t: dt, rx: 0.09 * b, ry: 0.092 * b, w: { hips: 0.25, [th]: 0.75 } },
-      { c: hip.clone().addScaledVector(dt, 0.2), t: dt, rx: 0.088 * b, ry: 0.09 * b, w: { [th]: 1 } },
-      { c: kn.clone().addScaledVector(dt, -0.07), t: dt, rx: 0.074 * b, ry: 0.076 * b, w: { [th]: 0.9, [cf]: 0.1 } },
-      { c: kn.clone(), t: dt.clone().add(ds), rx: 0.07 * b, ry: 0.072 * b, w: { [th]: 0.5, [cf]: 0.5 } },
-      { c: kn.clone().addScaledVector(ds, 0.07), t: ds, rx: 0.068 * b, ry: 0.07 * b, w: { [th]: 0.1, [cf]: 0.9 } },
-      { c: kn.clone().addScaledVector(ds, 0.2), t: ds, rx: 0.066 * b, ry: 0.068 * b, w: { [cf]: 1 } },
-      { c: an.clone().addScaledVector(ds, -0.07), t: ds, rx: (o.taper ? 0.05 : 0.064) * b, ry: (o.taper ? 0.05 : 0.066) * b, w: { [cf]: 0.9, [ft]: 0.1 } },
-      { c: an.clone().addScaledVector(ds, -0.01), t: ds, rx: (o.taper ? 0.047 : 0.066) * b, ry: (o.taper ? 0.047 : 0.068) * b, w: { [cf]: 0.6, [ft]: 0.4 }, col: o.cuff ? C(o.cuff) : pants },
+      { c: hip.clone().addScaledVector(dt, -0.03), t: dt, rx: 0.088 * bt, ry: 0.09 * bt, w: { hips: 0.7, [th]: 0.3 } },
+      { c: hip.clone().addScaledVector(dt, 0.07), t: dt, rx: 0.09 * bt, ry: 0.092 * bt, w: { hips: 0.25, [th]: 0.75 } },
+      { c: hip.clone().addScaledVector(dt, 0.2), t: dt, rx: 0.088 * bt, ry: 0.09 * bt, w: { [th]: 1 } },
+      { c: kn.clone().addScaledVector(dt, -0.07), t: dt, rx: 0.074 * bt, ry: 0.076 * bt, w: { [th]: 0.9, [cf]: 0.1 } },
+      { c: kn.clone(), t: dt.clone().add(ds), rx: 0.07 * bk, ry: 0.072 * bk, w: { [th]: 0.5, [cf]: 0.5 } },
+      { c: kn.clone().addScaledVector(ds, 0.07), t: ds, rx: 0.068 * bc, ry: 0.07 * bc, w: { [th]: 0.1, [cf]: 0.9 } },
+      { c: kn.clone().addScaledVector(ds, 0.2), t: ds, rx: 0.066 * bc, ry: 0.068 * bc, w: { [cf]: 1 } },
+      { c: an.clone().addScaledVector(ds, -0.07), t: ds, rx: (o.taper ? 0.05 : 0.064) * bc, ry: (o.taper ? 0.05 : 0.066) * bc, w: { [cf]: 0.9, [ft]: 0.1 } },
+      { c: an.clone().addScaledVector(ds, -0.01), t: ds, rx: (o.taper ? 0.047 : 0.066) * bc, ry: (o.taper ? 0.047 : 0.068) * bc, w: { [cf]: 0.6, [ft]: 0.4 }, col: o.cuff ? C(o.cuff) : pants },
     ];
     B.tube(L.map((r) => ({ ref: out, col: pants, colFn: r.col ? null : legCol, ...r })), 20, { capStart: false, capEnd: false });
     // sock / ankle: closes the trouser hem above the trainer
+    const sk = bc < 1 ? Math.max(0.6, bc * 0.94) : 1; // tight trousers (leggings): a thinner ankle so it stays inside the hem
     B.tube([
-      { c: an.clone().addScaledVector(ds, -0.09), rx: 0.05, ry: 0.05, w: { [cf]: 1 } },
-      { c: an.clone().addScaledVector(ds, 0.0), rx: 0.045, ry: 0.045, w: { [cf]: 0.5, [ft]: 0.5 } },
-      { c: an.clone().addScaledVector(ds, 0.04), rx: 0.045, ry: 0.045, w: { [ft]: 1 } },
+      { c: an.clone().addScaledVector(ds, -0.09), rx: 0.05 * sk, ry: 0.05 * sk, w: { [cf]: 1 } },
+      { c: an.clone().addScaledVector(ds, 0.0), rx: 0.045 * sk, ry: 0.045 * sk, w: { [cf]: 0.5, [ft]: 0.5 } },
+      { c: an.clone().addScaledVector(ds, 0.04), rx: 0.045 * sk, ry: 0.045 * sk, w: { [ft]: 1 } },
     ].map((r) => ({ t: ds, ref: out, col: C(o.sock || '#f3f4fa'), ...r })), 12, { capStart: 'dome', capEnd: false });
     if (o.cargo) {
       // cargo pocket on the outer thigh
-      const c = hip.clone().addScaledVector(dt, 0.25).addScaledVector(out, 0.086 * b);
+      const c = hip.clone().addScaledVector(dt, 0.25).addScaledVector(out, 0.086 * bt);
       B.tube([-0.06, -0.02, 0.03, 0.065].map((f, i) => ({
         c: c.clone().addScaledVector(dt, f), t: dt, ref: Z, rx: i === 0 ? 0.05 : 0.055, ry: 0.018, p: 4, w: { [th]: 1 }, col: i === 0 ? C(o.cargo) : pants,
       })), 10, { domeDepth: 0.4 });
     }
     // --- trainer: chunky upper on a thick sole, heel -> toe along the foot
     const f0 = an.clone().setY(0);
-    const fz = (z) => f0.clone().add(v3(x * 0.004 * z * 10, 0, z));
+    const fs = S.foot;
+    const fz = (z) => f0.clone().add(v3(x * 0.004 * z * 10, 0, z * fs));
     const ch = o.chunky ?? 1;
     const up = [
       { z: -0.085, w: 0.045, y: 0.085, h: 0.055 },
@@ -382,37 +532,57 @@ export function buildDancer(o) {
       { z: 0.17, w: 0.045, y: 0.05, h: 0.027 },
     ];
     B.tube(up.map((r, i) => ({
-      c: fz(r.z).setY(r.y * ch), t: Z, ref: X, rx: r.w * ch, ry: r.h * ch, p: 2.6, w: { [ft]: 1 },
+      c: fz(r.z).setY(r.y * ch), t: Z, ref: X, rx: r.w * ch * fs, ry: r.h * ch, p: 2.6, w: { [ft]: 1 },
       col: shoe, colFn: i >= 2 && i <= 3 && o.lace ? (k, n) => (k > n * 0.6 && k < n * 0.9 ? lace : shoe) : null,
     })), 18, { capStart: 'dome', capEnd: 'dome', domeDepth: 0.7 });
     // sole: a flat, wide slab
     const soleH = 0.022 * ch;
     B.tube([-0.095, -0.06, 0.0, 0.08, 0.15, 0.185].map((z, i) => ({
-      c: fz(z).setY(soleH), t: Z, ref: X, rx: [0.05, 0.062, 0.064, 0.066, 0.06, 0.045][i] * ch, ry: soleH, p: 6, w: { [ft]: 1 }, col: sole,
+      c: fz(z).setY(soleH), t: Z, ref: X, rx: [0.05, 0.062, 0.064, 0.066, 0.06, 0.045][i] * ch * fs, ry: soleH, p: 6, w: { [ft]: 1 }, col: sole,
     })), 18, { capStart: 'dome', capEnd: 'dome', domeDepth: 0.5 });
   }
 
-  // --- hats
+  if (o.dress) {
+    // dress-length top (oversized tee as a dress): a skirt from inside the hem to mid-thigh. Towards the hem the
+    // vertices follow the thighs (split left / right by x), so a kick lifts the skirt instead of poking through it.
+    const y0 = hemY + 0.03, y1 = typeof o.dress === 'number' ? o.dress : 0.7;
+    const r0 = 0.183 * ovs * fx(hemY) * 0.985, d0 = 0.124 * ovs * 0.985;
+    const skirtW = (pt) => {
+      const t = Math.min(1, Math.max(0, (y0 - pt.y) / (y0 - y1)));
+      const tw = 0.92 * smooth(0.0, 1.0, t);
+      const sx = Math.min(1, Math.max(0, 0.5 + pt.x / 0.2));
+      return { hips: 1 - tw, l_thigh: tw * sx, r_thigh: tw * (1 - sx) };
+    };
+    const N = 6;
+    B.tube([...Array(N)].map((_, i) => {
+      const t = i / (N - 1), y = y0 + (y1 - y0) * t;
+      return { c: v3(0, y, -0.015 + 0.012 * t), t: Y, ref: X, rx: r0 * (1 + 0.1 * t), ry: d0 * (1 + 0.32 * t), p: 2.5, wfn: skirtW, col: i === N - 1 ? topDark : top };
+    }).reverse(), 36, { capStart: false, capEnd: false });
+  }
+
+  // --- hats (sized up over big hair)
+  const hv = (HAIR_VOLUME[o.hairStyle || 'crop'] || 1) * S.head;
   if (o.hat === 'bucket') {
     const hcol = C(o.hatCol);
-    const hy = 1.735;
+    const hy = 1.735 + (hv - 1) * 0.05;
     B.tube([
       { c: v3(0, hy - 0.035, 0.005), rx: 0.175, ry: 0.185, col: hcol },
       { c: v3(0, hy - 0.01, 0.005), rx: 0.13, ry: 0.14, col: hcol },
       { c: v3(0, hy - 0.003, 0.005), rx: 0.098, ry: 0.11, col: hcol },
       { c: v3(0, hy + 0.06, 0.0), rx: 0.092, ry: 0.102, col: hcol },
       { c: v3(0, hy + 0.08, 0.0), rx: 0.08, ry: 0.088, col: hcol },
-    ].map((r) => ({ t: Y, ref: X, w: { head: 1 }, ...r })), 26, { capStart: false, capEnd: 'flat', domeDepth: 0.2 });
+    ].map((r) => ({ t: Y, ref: X, w: { head: 1 }, ...r, rx: r.rx * hv, ry: r.ry * hv })), 26, { capStart: false, capEnd: 'flat', domeDepth: 0.2 });
     // brim underside so it is not see-through
     B.tube([
       { c: v3(0, hy - 0.004, 0.005), rx: 0.098, ry: 0.11 },
       { c: v3(0, hy - 0.037, 0.005), rx: 0.172, ry: 0.182 },
-    ].map((r) => ({ t: v3(0, -1, 0), ref: X, w: { head: 1 }, col: hcol.clone().multiplyScalar(0.8), ...r })), 26, { capStart: false, capEnd: false });
+    ].map((r) => ({ t: v3(0, -1, 0), ref: X, w: { head: 1 }, col: hcol.clone().multiplyScalar(0.8), ...r, rx: r.rx * hv, ry: r.ry * hv })), 26, { capStart: false, capEnd: false });
   } else if (o.hat === 'cap') {
     const hcol = C(o.hatCol);
-    B.ellipsoid(hc.clone().add(v3(0, 0.022, -0.004)), [0.09, 0.098, 0.101], { head: 1 }, hcol, { ws: 24, hs: 14, keep: (u) => u.y > 0.12 });
+    // keep whole latitude bands (a centroid test inside a band leaves a saw-tooth edge)
+    B.ellipsoid(hc.clone().add(v3(0, 0.012, -0.004)), [0.09 * hv, 0.098 * hv, 0.101 * hv], { head: 1 }, hcol, { ws: 24, hs: 14, keep: (u) => u.y > 0.16 });
     B.tube([0.02, 0.08, 0.13].map((dz, i) => ({
-      c: v3(0, 1.7 - i * 0.004, 0.085 + dz), t: Z, ref: X, rx: [0.085, 0.08, 0.06][i], ry: 0.007, p: 3, w: { head: 1 }, col: hcol,
+      c: v3(0, 1.7 - i * 0.004 + (hv - 1) * 0.03, 0.012 + (0.073 + dz) * hv), t: Z, ref: X, rx: [0.085, 0.08, 0.06][i] * hv, ry: 0.007, p: 3, w: { head: 1 }, col: hcol,
     })), 16, { domeDepth: 0.3 });
   }
   return B;

@@ -2,8 +2,9 @@
 // Not part of the site's page flow: main.jsx only mounts it in dev (or with VITE_DANCE_LAB=1).
 //
 // Keys: 1-9, 0 / A-D design (5-9, 0 = D1-D6 from designs/index.js) · C caption · Space play/pause (from the drop) · P play with 4 s of
-// idle before the drop · ←/→ ±1 8-count · K freeze on the 41.04 s clap · H hide site chrome
+// idle before the drop · ←/→ ±1 8-count · K freeze on the 41.04 s clap · H hide site chrome · L crew layout (L1-L4, off)
 // URL: ?design=A..D, D1..D6&caption=0..3&t=41.04 (freeze at a song time) &chrome=0 &view=verify
+//      &crew=L1..L4 (9-dancer crew, crew/; &seed=N re-rolls the looks; &lineup=front|back: the looks in a row, bind pose)
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import Header from '../Header.jsx';
@@ -19,6 +20,8 @@ import CapsuleMannequin from './designs/CapsuleMannequin.jsx';
 import NeonWire from './designs/NeonWire.jsx';
 import LowPolyCharacter from './designs/LowPolyCharacter.jsx';
 import { EXTRA_DESIGNS } from './designs/index.js'; // D1-D6 (keys 5-9, 0)
+import Crew from './crew/Crew.jsx';
+import { LAYOUTS, LAYOUT_KEYS } from './crew/layouts.js';
 
 const DESIGNS = {
   A: { name: 'Ink figure', Component: InkFigure, stage: 'blue', dpr: 2 },
@@ -94,7 +97,7 @@ function VerifyCamera({ rig }) {
   return null;
 }
 
-function Stage({ rig, clock, design, verify, statsRef, onContextGone }) {
+function Stage({ rig, clock, design, verify, statsRef, onContextGone, crew, seed, lineup }) {
   const { size } = useThree();
   const get = useThree((s) => s.get);
   useEffect(() => { window.__labThree = get; return () => { delete window.__labThree; }; }, [get]);
@@ -102,8 +105,12 @@ function Stage({ rig, clock, design, verify, statsRef, onContextGone }) {
   const narrow = size.width <= 900;
   return (
     <>
-      {verify ? <VerifyCamera rig={rig} /> : <StageCamera top={narrow ? 150 : 112} bottom={narrow ? 150 : 150} />}
-      <Design rig={rig} clock={clock} />
+      {crew ? <Crew rig={rig} clock={clock} layout={crew} seed={seed} lineup={lineup} top={lineup ? 24 : narrow ? 146 : 108} bottom={lineup ? 24 : 118} /> : (
+        <>
+          {verify ? <VerifyCamera rig={rig} /> : <StageCamera top={narrow ? 150 : 112} bottom={narrow ? 150 : 150} />}
+          <Design rig={rig} clock={clock} />
+        </>
+      )}
       <Stats statsRef={statsRef} />
       <WebGLRecovery onUnrecoverable={onContextGone} />
     </>
@@ -114,10 +121,13 @@ export default function DanceLab() {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const [rig, setRig] = useState(null);
   const [design, setDesign] = useState(() => (KEYS.includes(params.get('design')) ? params.get('design') : 'A'));
-  const [caption, setCaption] = useState(() => Number(params.get('caption') || DESIGNS[params.get('design')]?.caption || 0) % CAPTIONS.length);
+  const [caption, setCaption] = useState(() => Number(params.get('caption') || DESIGNS[params.get('design')]?.caption || (params.get('crew') ? 3 : 0)) % CAPTIONS.length);
   const [chrome, setChrome] = useState(params.get('chrome') !== '0');
   const [panel] = useState(params.get('panel') !== '0');
   const [playing, setPlaying] = useState(false);
+  const [crew, setCrew] = useState(() => (LAYOUT_KEYS.includes(params.get('crew')) ? params.get('crew') : null));
+  const seed = Number(params.get('seed') || 7);
+  const lineup = ['front', 'back'].includes(params.get('lineup')) ? params.get('lineup') : null;
   const [glKey, setGlKey] = useState(0); // bumped to remount the canvas if its WebGL context never comes back
   const verify = params.get('view') === 'verify';
   const audio = useMemo(() => {
@@ -153,7 +163,7 @@ export default function DanceLab() {
       ready: true,
       verifyErr: rig.verifyErr,
       freeze(t, wall = null) { clock.mode = 'frozen'; clock.frozenT = t; clock.frozenWall = wall; },
-      setDesign, setCaption, setChrome,
+      setDesign, setCaption, setChrome, setCrew,
     };
     return () => { delete window.__lab; };
   }, [rig, clock, params]);
@@ -181,6 +191,7 @@ export default function DanceLab() {
       if (KEYS.includes(k)) setDesign(k);
       else if ('1234567890'.includes(k) && KEYS['1234567890'.indexOf(k)]) setDesign(KEYS['1234567890'.indexOf(k)]);
       else if (k === 'C') setCaption((c) => (c + 1) % CAPTIONS.length);
+      else if (k === 'L') setCrew((c) => [...LAYOUT_KEYS, null][(LAYOUT_KEYS.indexOf(c) + 1 + LAYOUT_KEYS.length + 1) % (LAYOUT_KEYS.length + 1)]);
       else if (k === 'H') setChrome((c) => !c);
       else if (k === 'P') play(8.37 - 4);
       else if (k === 'K') { audio.pause(); setPlaying(false); clock.mode = 'frozen'; clock.frozenT = CLAP_T; clock.frozenWall = null; }
@@ -201,8 +212,9 @@ export default function DanceLab() {
         const s = clock.read();
         timeRef.current.textContent = s.idle && clock.mode === 'idle' ? 'waiting for the drop' : fmt(s.t);
         const u = rig.unitAt(s.t);
-        unitRef.current.textContent = !u || s.idle ? (s.t < rig.drop ? 'IDLE (before the drop)' : '') :
-          u.fused ? `u${u.u} FUSED · LEGS ${u.legs} · ARMS ${u.arms}` : `u${u.u} ${u.move}`;
+        unitRef.current.textContent = (!u || s.idle ? (s.t < rig.drop ? 'IDLE (before the drop)' : '') :
+          u.fused ? `u${u.u} FUSED · LEGS ${u.legs} · ARMS ${u.arms}` : `u${u.u} ${u.move}`) +
+          (window.__crew && !s.idle ? ` · crew ${window.__crew.describe(s.t).join(' ')}` : '');
       }
       raf = requestAnimationFrame(tick);
     };
@@ -238,7 +250,7 @@ export default function DanceLab() {
       {rig && (
         <Canvas key={`${design}-${glKey}`} flat dpr={[1, DESIGNS[design].dpr]} gl={{ antialias: !HI_DPI, alpha: true }}
           camera={{ fov: 26, position: [0, 1.25, 8] }} className="dance-lab-canvas">
-          <Stage rig={rig} clock={clock} design={design} verify={verify} statsRef={statsRef}
+          <Stage rig={rig} clock={clock} design={design} verify={verify} statsRef={statsRef} crew={crew} seed={seed} lineup={lineup}
             onContextGone={() => setGlKey((k) => k + 1)} />
         </Canvas>
       )}
@@ -256,6 +268,12 @@ export default function DanceLab() {
             ))}
           </div>
           <div className="lab-row">
+            {[...LAYOUT_KEYS, null].map((k) => (
+              <button key={k || 'off'} type="button" className={crew === k ? 'on' : ''} onClick={(e) => { setCrew(k); e.currentTarget.blur(); }}>
+                {k ? `crew ${k} · ${LAYOUTS[k].name}` : 'solo'}</button>
+            ))}
+          </div>
+          <div className="lab-row">
             <button type="button" onClick={(e) => { toggle(); e.currentTarget.blur(); }}>{playing ? 'pause' : 'play from drop'}</button>
             <button type="button" onClick={(e) => { play(8.37 - 4); e.currentTarget.blur(); }}>pre-roll</button>
             <button type="button" onClick={(e) => { setCaption((c) => (c + 1) % CAPTIONS.length); e.currentTarget.blur(); }}>caption {caption + 1}/{CAPTIONS.length}</button>
@@ -266,7 +284,7 @@ export default function DanceLab() {
             <span ref={statsRef} />
           </div>
           <div className="lab-unit" ref={unitRef} />
-          {rig && <div className="lab-unit">FK vs MuJoCo: {rig.verifyErr.toExponential(1)} m · keys 1-9 0 C space P ←→ K H</div>}
+          {rig && <div className="lab-unit">FK vs MuJoCo: {rig.verifyErr.toExponential(1)} m · keys 1-9 0 C space P ←→ K H L</div>}
         </div>
       )}
     </div>
