@@ -1,0 +1,112 @@
+/* Dance lab: the welcome page's blue music stage, full screen, with the dancer in the middle. */
+.dance-lab {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #0117d5;
+  color: #fff;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* C. Neon: the same blue, dimmed towards the edges like a club stage */
+.dance-lab.stage-club {
+  background: radial-gradient(ellipse 70% 65% at 50% 58%, #0a1ed6 0%, #03109a 42%, #010746 100%);
+}
+
+.dance-lab-canvas {
+  position: fixed !important;
+  inset: 0;
+  width: 100vw !important;
+  height: 100dvh !important;
+  z-index: 1;
+}
+
+/* the welcome page's intro text, as it looks on the stage (white) */
+.lab-intro {
+  z-index: 5;
+  color: #fff;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* the space key as it sits after the drop (pressed, red) — static here */
+.lab-space {
+  pointer-events: none;
+}
+.lab-space svg#rectangle { bottom: 28px; }
+.lab-space .space-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+}
+.lab-space #stroke-top,
+.lab-space #stroke-bottom { stroke-dashoffset: 0; }
+
+/* Caption: the bracketed mono label style of the welcome page, small and muted */
+.dancer-caption {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  z-index: 6;
+  margin: 0;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  text-align: center;
+  font-size: 10px;
+  line-height: 1.5;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+  pointer-events: none;
+  animation: caption-in 0.5s ease both;
+}
+.dancer-caption-tag {
+  color: #f0ff18;
+  font-weight: 600;
+  margin-right: 0.35em;
+}
+@keyframes caption-in {
+  from { opacity: 0; transform: translate(-50%, 4px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* dev panel */
+.lab-panel {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 3000;
+  max-width: min(560px, calc(50vw - 190px));
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 6px;
+  background: rgba(0, 8, 90, 0.55);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.lab-row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.lab-panel button {
+  font: inherit;
+  color: #fff;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 999px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.lab-panel button.on { background: #f0ff18; color: #0117d5; border-color: #f0ff18; }
+.lab-readout { justify-content: space-between; gap: 12px; }
+.lab-time { color: #f0ff18; font-weight: 600; font-size: 12px; }
+.lab-unit { opacity: 0.75; word-break: break-all; }
+
+@media (max-width: 900px) {
+  .lab-panel { left: 8px; right: 8px; bottom: auto; top: 62px; max-width: none; opacity: 0.85; }
+  .dancer-caption { bottom: 94px; font-size: 9px; }
+}
