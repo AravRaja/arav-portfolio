@@ -1,6 +1,6 @@
 import { Box3, Vector3 } from 'three';
 import { djBounds } from '../../components/djBounds.js';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import AnimatedButton from './AnimatedButton.jsx';
@@ -8,6 +8,7 @@ import { useResponsiveModel } from '../../hooks/useResponsiveModel.js';
 import { useMouseOverCanvas } from '../../hooks/useMouseOverCanvas.js';
 import { useDJAnimation } from '../../hooks/useDJAnimation.js';
 import { holdSync } from '../../audio/holdSync.js';
+import { WebGLRecovery } from '../../danceLab/useWebGLRecovery.js';
 
 // The deck pulses on the beat during the build-up: not at all at the start of the hold,
 // growing as the filter opens, strongest when the bar is full.
@@ -165,23 +166,48 @@ function DJModel({animation, setAnimation, ANIMATION, onActivate, zoomTrigger, s
 
 
 
+// A full-screen canvas is the page's biggest memory cost. On retina screens the extra pixels
+// already smooth the edges, so skip multisampling there (it multiplies the buffers ~4x).
+const HI_DPI = typeof window !== 'undefined' && window.devicePixelRatio >= 1.5;
+
 export default function DJScene({ animation, setAnimation, ANIMATION, onActivate, zoomTrigger, stageZoom }) {
+  // On the music stage the deck is hidden, so stop drawing it once the zoom-in has finished.
+  // Leaving the stage resumes straight away (with a fresh clock, so the zoom-out doesn't jump).
+  const [paused, setPaused] = useState(false);
+  useEffect(() => {
+    if (!stageZoom?.inward) { setPaused(false); return; }
+    const timer = setTimeout(() => setPaused(true), stageZoom.seconds * 1000 + 100);
+    return () => clearTimeout(timer);
+  }, [stageZoom]);
+
+  // Bumped to remount the canvas (fresh WebGL context) if a lost context is never restored.
+  const [glKey, setGlKey] = useState(0);
+
   return (
-    <Canvas camera={{ position: [0, 3, 8], fov: 60 }} 
+    <Canvas key={glKey} camera={{ position: [0, 3, 8], fov: 60 }}
+      frameloop={paused ? 'never' : 'always'}
+      dpr={[1, 2]}
+      gl={{ antialias: !HI_DPI }}
       className="djscene-canvas"
       style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}
       resize={{ scroll: false, debounce: { scroll: 50, resize: 0 } }}
     >
       <ambientLight intensity={0}/>
       <directionalLight position={[5, 5, 5]} intensity={5} />
-      <DJModel
-        animation={animation}
-        setAnimation={setAnimation}
-        ANIMATION={ANIMATION}
-        onActivate={onActivate}
-        zoomTrigger={zoomTrigger}
-        stageZoom={stageZoom}
-      />
+      <WebGLRecovery onUnrecoverable={() => setGlKey((k) => k + 1)} />
+      {/* Catch the GLB load inside the canvas. Without this boundary r3f suspends the whole <Canvas>
+          into App's route <Suspense>, and in dev StrictMode the re-reveal re-runs the Canvas's
+          unmount effect, which force-loses the live context ~0.5 s later. */}
+      <Suspense fallback={null}>
+        <DJModel
+          animation={animation}
+          setAnimation={setAnimation}
+          ANIMATION={ANIMATION}
+          onActivate={onActivate}
+          zoomTrigger={zoomTrigger}
+          stageZoom={stageZoom}
+        />
+      </Suspense>
     </Canvas>
   );
 }

@@ -1,0 +1,63 @@
+diff --git a/src/welcomePage/components/DJScene.jsx b/src/welcomePage/components/DJScene.jsx
+index cbb12a3..616a971 100644
+--- a/src/welcomePage/components/DJScene.jsx
++++ b/src/welcomePage/components/DJScene.jsx
+@@ -1,6 +1,6 @@
+ import { Box3, Vector3 } from 'three';
+ import { djBounds } from '../../components/djBounds.js';
+-import React, { useState, useRef, useEffect } from 'react';
++import React, { useState, useRef, useEffect, Suspense } from 'react';
+ import { Canvas, useFrame, useThree } from '@react-three/fiber';
+ import { useGLTF } from '@react-three/drei';
+ import AnimatedButton from './AnimatedButton.jsx';
+@@ -8,6 +8,7 @@ import { useResponsiveModel } from '../../hooks/useResponsiveModel.js';
+ import { useMouseOverCanvas } from '../../hooks/useMouseOverCanvas.js';
+ import { useDJAnimation } from '../../hooks/useDJAnimation.js';
+ import { holdSync } from '../../audio/holdSync.js';
++import { WebGLRecovery } from '../../danceLab/useWebGLRecovery.js';
+ 
+ // The deck pulses on the beat during the build-up: not at all at the start of the hold,
+ // growing as the filter opens, strongest when the bar is full.
+@@ -179,8 +180,11 @@ export default function DJScene({ animation, setAnimation, ANIMATION, onActivate
+     return () => clearTimeout(timer);
+   }, [stageZoom]);
+ 
++  // Bumped to remount the canvas (fresh WebGL context) if a lost context is never restored.
++  const [glKey, setGlKey] = useState(0);
++
+   return (
+-    <Canvas camera={{ position: [0, 3, 8], fov: 60 }}
++    <Canvas key={glKey} camera={{ position: [0, 3, 8], fov: 60 }}
+       frameloop={paused ? 'never' : 'always'}
+       dpr={[1, 2]}
+       gl={{ antialias: !HI_DPI }}
+@@ -190,14 +194,20 @@ export default function DJScene({ animation, setAnimation, ANIMATION, onActivate
+     >
+       <ambientLight intensity={0}/>
+       <directionalLight position={[5, 5, 5]} intensity={5} />
+-      <DJModel
+-        animation={animation}
+-        setAnimation={setAnimation}
+-        ANIMATION={ANIMATION}
+-        onActivate={onActivate}
+-        zoomTrigger={zoomTrigger}
+-        stageZoom={stageZoom}
+-      />
++      <WebGLRecovery onUnrecoverable={() => setGlKey((k) => k + 1)} />
++      {/* Catch the GLB load inside the canvas. Without this boundary r3f suspends the whole <Canvas>
++          into App's route <Suspense>, and in dev StrictMode the re-reveal re-runs the Canvas's
++          unmount effect, which force-loses the live context ~0.5 s later. */}
++      <Suspense fallback={null}>
++        <DJModel
++          animation={animation}
++          setAnimation={setAnimation}
++          ANIMATION={ANIMATION}
++          onActivate={onActivate}
++          zoomTrigger={zoomTrigger}
++          stageZoom={stageZoom}
++        />
++      </Suspense>
+     </Canvas>
+   );
+ }
+\ No newline at end of file

@@ -1,0 +1,15 @@
+# Install on the GPU box (see remote/setup.sh). jax must be the CUDA 12 build.
+jax[cuda12]
+mujoco
+mujoco-mjx
+brax
+playground
+librosa
+soundfile
+imageio
+imageio-ffmpeg
+matplotlib
+numpy
+scipy
+pyyaml
+tqdm

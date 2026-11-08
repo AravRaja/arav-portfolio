@@ -1,0 +1,19 @@
+# Phase 2 round 3 (c): the FINALE, rollout only (no training): python -m dance_rl.show --config configs/s9/c_show.yaml
+# Full song on the section_energy choreographer schedule (A, A', B, B' per section, ' = mirrored copy). The 4
+# highest-energy non-breakdown 8-counts are FUSED: legs = the scheduled move, arms = the next-highest-energy move of
+# the other genre (gLH <-> gMH; mirrored on ' units). The acting checkpoint switches at the 8-count boundary:
+# `fused` on fused units, `unfused` elsewhere (same 215-dim obs layout; dance_rl.show asserts it).
+name: s9_c_show
+mode: show
+env_config: configs/s9/b_fusion_fk.yaml          # env of the fused policy (fused_target fk; identical on unfused units)
+checkpoints:
+  unfused: runs/s8_a/checkpoints/best.pkl        # round-3 verdict (plan rule): s8_a stays the unfused champion (score_v2
+                                                 # 0.733 vs s9_a 0.700-0.702; s9_a is 0.2 deg closer but its stops sit on the
+                                                 # dancers' +21 ms and the common D drops -0.37 -> -0.73). Alternate finale
+                                                 # with runs/s9_a/checkpoints/final.pkl: runs/s9_c_s9a/
+  fused: runs/s9_b/checkpoints/best.pkl          # round-3 verdict: s9_b best (= its last eval, 152M; fk targets)
+fusion:
+  n_units: 4
+  exclude_breakdown: true
+  arms: other_genre_next
+out: runs/s9_c/rollout.npz

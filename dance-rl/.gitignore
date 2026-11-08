@@ -1,0 +1,13 @@
+checkpoints/
+videos/
+frames/
+features/
+runs/
+logs/
+rollouts/
+metrics_out/
+__pycache__/
+*.pyc
+*.npz
+*.pkl
+*.mp4

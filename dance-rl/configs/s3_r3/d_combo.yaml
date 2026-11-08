@@ -1,0 +1,81 @@
+# Stage 3 round 3 (d_combo), parent s3r2_b (configs/s3_r2/b_accentoff.yaml). Everything on, real features, pre/post drop switch, drop bonus.
+name: s3_r3_d_combo
+stage: 3
+music_source: song
+features: features/now-get-busy.features.npz
+
+env:
+  ctrl_dt: 0.02               # 50 Hz control
+  sim_dt: 0.004               # 250 Hz physics, 5 substeps (see README: 0.002 x 10 was ~2x slower)
+  episode_seconds: 16.0
+  forced_start_time: 4.0
+  forced_start_prob: 0.2
+  init_noise: 0.02            # rad, uniform joint noise at reset
+  fall_height: 0.7            # pelvis z; episode ends below this
+  height_band: [0.8, 1.3]     # pelvis z band where height = 1 (PLAN says 0.9; this model stands at pelvis z 0.86)
+  height_falloff: 0.3         # height = 1 - (dist_outside_band / falloff)^2, floored at 0
+  contact_height: 0.02        # foot geom lowest point below this = contact
+  m_lowpass_hz: 10.0
+  m_floor: 0.1                # m_hat = m / max(1-bar mean of m, m_floor)
+  m_ref: 1.5                  # energy match: (1-bar mean m / m_ref - energy)^2
+  groove_sigma: 1.0
+  alternation_sigma: 1.0
+  variety_sigma: 1.0
+  idle_bob_clip: 0.1
+  kick_window_s: 0.06
+  kick_threshold: 0.5
+  drift_leash: 1.0
+  joint_limit_margin: 0.05
+  accent_signal: grid_kick     # r1: accent = clip(max(beat-grid gaussian pulse, kick), 0, 1)
+  accent_pulse_sigma: 0.08     # beats (~42 ms at 113 BPM)
+  spin_penalty: true           # r3a: -(1-bar mean yaw rate)^2, observable via angvel
+  accent_off_power: 2          # r3b: accent_off = m_hat^2 * (1 - accent)
+  phrase_clock: true           # r3c: + sin/cos 8-bar phrase phase (obs 107 -> 109)
+
+reward_weights:
+  # always on
+  upright: 1.0
+  height: 1.0
+  fall: -10.0
+  torque: -0.01
+  action_rate: -0.05
+  joint_limits: -1.0
+  drift: -0.5
+  facing: -0.2
+  foot_slide: -0.3
+  # before the drop (after_drop = 0)
+  stillness: -1.0
+  idle_bob: 0.3
+  # after the drop (after_drop = 1)
+  accent_on: 2.0
+  accent_off: -1.5             # r2b: -1.0 -> -1.5 (post-hit shoulder, ppb 1.28)
+  step_on_kick: 1.0
+  groove: 1.0
+  alternation: 0.5
+  full_body: 0.8
+  energy_match: -0.5
+  variety: -0.3
+  drop_bonus: 5.0
+  spin: -0.5                   # r3a: new term (spin_penalty)
+
+ppo:
+  num_timesteps: 100_000_000   # half length (round-1 variant)
+  num_envs: 4096
+  episode_length: 800         # 16 s at 50 Hz
+  unroll_length: 20
+  batch_size: 512
+  num_minibatches: 32
+  num_updates_per_batch: 4
+  discounting: 0.97
+  learning_rate: 3.0e-4
+  entropy_cost: 0.005
+  clipping_epsilon: 0.2
+  max_grad_norm: 1.0
+  reward_scaling: 1.0
+  normalize_observations: true
+  num_eval_envs: 128
+  policy_hidden_layer_sizes: [256, 256, 128]
+  value_hidden_layer_sizes: [256, 256, 256]
+
+checkpoint:
+  num_evals: 11               # eval + log + checkpoint this many times over the run
