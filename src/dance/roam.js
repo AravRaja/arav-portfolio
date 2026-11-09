@@ -2,8 +2,8 @@
 // the formation keeps reshuffling instead of standing on a grid. Deterministic (seeded) from the crew's sync
 // structure, planned once per layout / orientation (~50 ms, cached), then just looked up per frame by CrewMotion.
 //
-// A trip fills one whole 8-count that is NOT a unison unit (sync units, i.e. the drop and every section's first
-// 8-count, keep everyone doing the lead's moves, wherever they stand). The dancer plays a travelling 8-count from the
+// A trip fills one whole 8-count that is not the fall-in (unit 0) and not on or next to a unison payoff
+// (CrewMotion.noTrip; the payoffs keep everyone doing the lead's move, wherever they stand). The dancer plays a travelling 8-count from the
 // move library (travel.json) instead of its finale copy: the clip is re-rooted where the dancer stands and turned to its
 // current heading (so the trip starts without a pop), plus an aim turn eased in over the first two beats
 // (|delta| <= 45 deg) and a path scale (0.87-1.15) so it lands in a free spot; over the last two beats it turns to face
@@ -21,7 +21,7 @@
 // Units: the plan works in stage metres (three.js x / z); a dancer's transforms are stored in its own slot frame
 // (MuJoCo x forward / y left, in rig units, i.e. stage metres / its scale K).
 
-const MIN_GAP = 0.7;
+export const MIN_GAP = 0.7;
 const DT = 0.1;
 const MAX_DELTA = (45 * Math.PI) / 180;
 const MAX_EPS = (45 * Math.PI) / 180;
@@ -97,6 +97,7 @@ export function planRoam(motion, travel, { slots, K, travelK = 1, seed = 1, lead
   const t0 = typeof performance !== 'undefined' ? performance.now() : 0;
   const n = slots.length, nu = motion.nu, E = motion.eight, A = motion.anchor;
   const dur = motion.rigs[0].header.duration;
+  const finUnits = motion.rigs[0].header.units;
   const rng = mulberry32((seed * 2654435761) ^ (n * 97) ^ Math.round(slots[0][0] * 1000));
   const plan = new RoamPlan(n, nu, travel);
   const psi = slots.map((s) => (s[2] * Math.PI) / 180);
@@ -189,8 +190,11 @@ export function planRoam(motion, travel, { slots, K, travelK = 1, seed = 1, lead
   // check a candidate timeline for dancer i from sample k0 on: gaps to everyone else + inside the frame
   // (pathMargin: the camera's dance box around every slot covers arms + the in-place wander)
   // and, once it has landed, nobody stands right in front of / behind it (checked every second, wander included)
-  const ok = (i, x, z, k0, kTripEnd) => {
+  // `lazy` (a home): the samples after the trip are only computed (rootAt) as far as the check gets, so a candidate
+  // that fails early costs little; x / z are complete when it passes
+  const ok = (i, x, z, k0, kTripEnd, lazy = null) => {
     for (let k = k0; k < nK; k++) {
+      if (lazy && k > kTripEnd) { rootAt(i, lazy, k); x[k] = RX; z[k] = RZ; }
       if (lineDist(x[k], z[k]) > pathMargin) { dbg.frame++; return false; }
       if (k > kTripEnd && (k - kTripEnd) % 10 === 0) {
         for (let j = 0; j < n; j++) if (j !== i && Math.abs(x[k] - PX[j][k]) < ECLIPSE_X && Math.abs(z[k] - PZ[j][k]) < occZ) { dbg.hidden++; return false; }
@@ -209,15 +213,21 @@ export function planRoam(motion, travel, { slots, K, travelK = 1, seed = 1, lead
   // candidate timelines (scratch)
   const cx = new Float32Array(nK), cz = new Float32Array(nK), qs = new Float64Array(28);
 
-  const syncs = motion.syncUnits;
+  // no trips in the fall-in 8-count or on / next to a unison payoff (motion.noTrip, from schedule.js UNISON_UNITS)
+  const noTrip = motion.noTrip || motion.syncUnits;
   const units = [];
-  for (let u = 0; u < nu; u++) if (!syncs.has(u) && A + (u + 1) * E <= dur + 0.05) units.push(u);
+  for (let u = 0; u < nu; u++) if (!noTrip.has(u) && A + (u + 1) * E <= dur + 0.05) units.push(u);
   // trips per dancer: the lead 3, the others 4-5; one of every four is a turn in place (never the first trip)
   const quota = slots.map((_, i) => (i === lead ? 3 : 4 + (rng() < 0.4 ? 1 : 0)));
   const turnAt = quota.map((q) => 1 + Math.floor(rng() * (q - 1)));
   const done = slots.map(() => 0), last = slots.map(() => -9);
   const visited = slots.map((_, i) => new Set([i]));
-  const nearestSpot = (X, Z) => { let b = 0, bd = Infinity; spots.forEach((s, j) => { const d = Math.hypot(s[0] - X, s[1] - Z); if (d < bd) { bd = d; b = j; } }); return b; };
+  const nearestSpot = (X, Z) => {
+    let b = 0, bd = Infinity;
+    for (let j = 0; j < spots.length; j++) { const d = (spots[j][0] - X) ** 2 + (spots[j][1] - Z) ** 2; if (d < bd) { bd = d; b = j; } }
+    return b;
+  };
+  const OJ = new Int32Array(n), OX = new Float64Array(n), OZ = new Float64Array(n); // everyone else's anchor (scratch)
 
   const tryTurn = (i, u) => {
     const tb = A + u * E;
@@ -261,15 +271,29 @@ export function planRoam(motion, travel, { slots, K, travelK = 1, seed = 1, lead
     const siHere = nearestSpot(...anchorOf(i, h));
     // occupied: everyone else's current anchor (their committed position at the end of this 8-count)
     const kEnd = kOf(tb + E);
-    const others = [];
-    for (let j = 0; j < n; j++) if (j !== i) others.push([j, PX[j][kEnd], PZ[j][kEnd]]);
+    let no = 0;
+    for (let j = 0; j < n; j++) if (j !== i) { OJ[no] = j; OX[no] = PX[j][kEnd]; OZ[no] = PZ[j][kEnd]; no++; }
     let sx0 = Infinity, sx1 = -Infinity;
     let sxSum = 0;
-    for (const [, X] of others) { sx0 = Math.min(sx0, X); sx1 = Math.max(sx1, X); sxSum += X; }
+    for (let o = 0; o < no; o++) { const X = OX[o]; sx0 = Math.min(sx0, X); sx1 = Math.max(sx1, X); sxSum += X; }
     const cands = [];
+    // the moves everyone else is on in this 8-count (finale copies and trips): a trip clip may not duplicate one as seen,
+    // nor make a third dancer on one move (schedule.js rules; one travel move is also a finale move)
+    const busySeen = new Set(), busyMove = new Map();
+    for (let j = 0; j < n; j++) {
+      if (j === i) continue;
+      let id, mir;
+      const oj = plan._r(j, u);
+      if (plan.recs[oj] === 1) { const c = travel.clips[plan.recs[oj + 4]]; id = c.src; mir = !!c.mirrored; } else if (motion.src) {
+        const un = finUnits[Math.max(0, Math.min(finUnits.length - 1, motion.src(j, u)))];
+        id = un.move.replace(/_M$/, ''); mir = !!un.mirrored !== !!motion.mir(j, u);
+      } else continue;
+      busySeen.add(`${id}|${mir}`); busyMove.set(id, (busyMove.get(id) || 0) + 1);
+    }
     // landings the clips can reach from here: aim turn delta, length scale sigma
     travel.clips.forEach((cl, ci) => {
       if (cl.v_end > MAX_V_END || cl.v_start > MAX_V_START) return; // would lurch into / out of the dance
+      if (busySeen.has(`${cl.src}|${!!cl.mirrored}`) || (busyMove.get(cl.src) || 0) >= 2) return;
       for (let dd = -MAX_DELTA; dd <= MAX_DELTA + 1e-6; dd += MAX_DELTA / 3) {
         const delta = Math.max(-MAX_DELTA, Math.min(MAX_DELTA, dd + (rng() - 0.5) * (MAX_DELTA / 3)));
         const th = th0 + delta + cl.dir;
@@ -279,9 +303,10 @@ export function planRoam(motion, travel, { slots, K, travelK = 1, seed = 1, lead
           const GX = toX(i, ga, gb), GZ = toZ(i, ga, gb);
           if (lineDist(GX, GZ) > homeMargin) continue;
           if (i === lead && Math.hypot(GX - slots[lead][0], GZ - slots[lead][1]) > LEAD_RADIUS) continue;
-          let near = Infinity;
-          for (const [, X, Z] of others) near = Math.min(near, Math.hypot(X - GX, Z - GZ));
-          if (near < FREE) continue;
+          let near2 = Infinity;
+          for (let o = 0; o < no; o++) near2 = Math.min(near2, (OX[o] - GX) ** 2 + (OZ[o] - GZ) ** 2);
+          if (near2 < FREE * FREE) continue;
+          const near = Math.sqrt(near2);
           const si = nearestSpot(GX, GZ);
           if (si === siHere) continue; // a trip goes to another area of the floor
           const ds = Math.hypot(spots[si][0] - GX, spots[si][1] - GZ);
@@ -292,7 +317,8 @@ export function planRoam(motion, travel, { slots, K, travelK = 1, seed = 1, lead
           if (Math.abs(wrap(raw + eps)) > MAX_FACE) continue;
           // overlap on screen: the camera looks along -z, so dancers with close x hide each other unless far apart in depth
           let occl = 0, hidden = false;
-          for (const [j, X, Z] of others) {
+          for (let o = 0; o < no; o++) {
+            const j = OJ[o], X = OX[o], Z = OZ[o];
             const ddx = Math.abs(X - GX);
             if (ddx < hideX(Math.abs(Z - GZ))) hidden = true; // more than about half hidden: never park there
             if (ddx < OCCLUDE_X && Math.abs(Z - GZ) < occZ) occl += (1 - ddx / OCCLUDE_X) * (1 - Math.abs(Z - GZ) / occZ);
@@ -324,7 +350,8 @@ export function planRoam(motion, travel, { slots, K, travelK = 1, seed = 1, lead
       const c2 = Math.cos(phi2), s2 = Math.sin(phi2);
       const h2 = { ox: Ex - (c2 * dx1 - s2 * dy1), oy: Ey - (s2 * dx1 + c2 * dy1), phi: phi2 };
       cx.set(PX[i]); cz.set(PZ[i]);
-      for (let k = k0; k < nK; k++) {
+      // the trip itself; the samples after it (back on the finale copy at the new home h2) are filled by ok()
+      for (let k = k0; k <= kEnd; k++) {
         const tt = A + k * DT;
         let X, Z;
         if (tt <= tb + E) {
@@ -337,7 +364,7 @@ export function planRoam(motion, travel, { slots, K, travelK = 1, seed = 1, lead
         } else { rootAt(i, h2, k); X = RX; Z = RZ; }
         cx[k] = X; cz[k] = Z;
       }
-      if (!ok(i, cx, cz, k0, kEnd)) continue;
+      if (!ok(i, cx, cz, k0, kEnd, h2)) continue;
       PX[i].set(cx); PZ[i].set(cz);
       const o = plan._r(i, u);
       const R = plan.recs;
@@ -398,7 +425,7 @@ export function planRoam(motion, travel, { slots, K, travelK = 1, seed = 1, lead
   const areas = slots.map((_, i) => new Set([i, ...plan.trips.filter((t) => t.i === i && t.kind === 'travel').map((t) => nearestSpot(t.to[0], t.to[1]))]).size);
   plan.info = {
     seed, K: K.map((k) => +k.toFixed(4)), ms: +((typeof performance !== 'undefined' ? performance.now() : 0) - t0).toFixed(1), spots: spots.map((s) => s.map((v) => +v.toFixed(2))),
-    hull: H.map((s) => s.map((v) => +v.toFixed(2))), minGap: +minGap.toFixed(3), baselineGap: +baseline.toFixed(3),
+    hull: H.map((s) => s.map((v) => +v.toFixed(2))), minGap: +minGap.toFixed(3), clear: minGap >= MIN_GAP, baselineGap: +baseline.toFixed(3),
     worstFrame: +worstFrame.toFixed(3), pathMargin, areas, done, quota, rejects: dbg, trips: plan.trips.length,
     travels: plan.trips.filter((t) => t.kind === 'travel').length, turns: plan.trips.filter((t) => t.kind === 'turn').length,
   };

@@ -1,13 +1,15 @@
-// Crew motion without new training: every dancer plays one of the exported full-song trajectories
-// (public/dance/finale + optional alternate-schedule rollouts listed in public/dance/crew.json), shifted by a
-// whole number of 8-counts INSIDE the current section (so it is always on the beat and in the section's
-// energy tier) and/or mirrored left <-> right. On the sync units (the drop's first 8-count and the first
-// 8-count of every section, which also holds the 1-bar breakdowns) every dancer snaps to the lead: the
-// finale trajectory, same unit, not mirrored. Changes of (track, unit, mirror) at an 8-count boundary are
-// crossfaded over +-BLEND s (hinge angles lerp, root nlerp), so nobody pops.
+// Crew motion without new training: every dancer plays the exported full-song trajectory (public/dance/finale), but
+// from its own unit of it, picked by the seeded schedule (schedule.js): any 8-count of the whole song, optionally
+// mirrored left <-> right, carried on for a few 8-counts and then swapped for another, so no two dancers share a move
+// and the crew never looks scripted. On the unison payoffs (schedule.js UNISON_UNITS) everyone snaps to the finale's
+// own unit, not mirrored. Changes of (unit, mirror) at an 8-count boundary are crossfaded over +-BLEND s (hinge angles
+// lerp, root slerp), so nobody pops. Before the drop everyone idles; each dancer falls in at its own time just after
+// it (fallIn, crossfaded from the idle pose by Crew.jsx).
 // On top of that, a roaming plan (roam.js, set with setRoam) moves / turns each dancer's copy to its current spot on
 // the floor and swaps in a travelling 8-count from travel.json (TravelLib) for its trips.
+// Per frame nothing is allocated: the schedule is two typed arrays and every scratch buffer is preallocated.
 import { Quaternion } from 'three';
+import { FALL_IN_BLEND, UNISON_UNITS, planSchedule } from './schedule.js';
 
 const BLEND = 0.2;
 // a trip swaps the whole pose (other feet, other stance), so it blends in / out a bit slower than the finale switches
@@ -21,20 +23,10 @@ export function mirrorMap(jointNames) {
   return { perm, sign };
 }
 
-// Per-dancer motion recipes (index 0 = lead). Pairs (1,2), (3,4), ... share a recipe, the even one mirrored, so
-// layouts that put them either side of the centre get a mirror-symmetric crew. `track` indexes the loaded
-// trajectories (falls back to 0 when a track isn't available); `off` is the whole-8-count offset in the section.
-export const RECIPES = [
-  { track: 0, off: 0, mirror: false }, // lead
-  { track: 0, off: 2, mirror: false }, { track: 0, off: 2, mirror: true }, // B while the lead does A (6-unit sections)
-  { track: 0, off: 1, mirror: false }, { track: 0, off: 1, mirror: true }, // one 8-count ahead (canon)
-  { track: 0, off: 3, mirror: false }, { track: 0, off: 3, mirror: true }, // three ahead (= one behind in 4-unit sections)
-  { track: 0, off: 4, mirror: false }, { track: 0, off: 4, mirror: true }, // two ahead (= the lead / its mirror in 4-unit sections)
-];
-
 export class CrewMotion {
-  // rigs: Rig per track (rigs[0] = finale, also used as the poser); meta: crew.json
-  constructor(rigs, meta, recipes = RECIPES) {
+  // rigs: Rig per track (rigs[0] = finale, also the poser; the schedule only uses the finale); meta: crew.json;
+  // seed: the stage visit's seed (schedule + fall-in); n: dancers; unison: the payoff units.
+  constructor(rigs, meta, { seed = 1, n = 9, unison = UNISON_UNITS } = {}) {
     this.rigs = rigs;
     const h = rigs[0].header;
     this.anchor = h.grid_anchor;
@@ -42,31 +34,61 @@ export class CrewMotion {
     this.nu = h.units.length;
     this.drop = h.drop;
     this.mm = mirrorMap(h.joint_names);
-    this.recipes = recipes.map((r) => ({ ...r, track: rigs[r.track] ? r.track : 0, off: rigs[r.track] ? r.off : r.off + (r.track || 0) }));
-    // section of every unit: [start, length]
-    this.secOf = new Array(this.nu);
-    for (const [a, b] of meta.sections) for (let u = a; u < b; u++) this.secOf[u] = [a, b - a];
-    this.syncUnits = new Set(meta.sync_units);
+    this.n = n;
+    this.seed = seed;
+    this.unison = new Set(unison.filter((u) => u >= 0 && u < this.nu));
+    this.syncUnits = this.unison; // (old name)
+    // the roaming planner keeps its trips off the fall-in (unit 0) and off the payoffs; a trip's blend reaches 0.35 s
+    // past its own 8-count, so the 8-counts either side of a payoff are kept clear too
+    this.noTrip = new Set([0]);
+    for (const u of this.unison) for (let d = -1; d <= 1; d++) this.noTrip.add(u + d);
+    this.sched = planSchedule({ header: h, sections: meta.sections, n, seed, unison: [...this.unison] });
+    const { M, R, W, start } = this.sched;
+    this.M = M; this.R = R; this.W = W;
+    // fall-in crossfade window per dancer: [fa, fb] (never before the drop)
+    this.fa = Float64Array.from(start, (s) => Math.max(this.drop, s - FALL_IN_BLEND));
+    this.fb = Float64Array.from(start, (s) => s + FALL_IN_BLEND);
     this.a = new Float64Array(28); this.b = new Float64Array(28); this.tmp = new Float64Array(28);
     this.q = new Float64Array(28);
     this.ra = new Float64Array(28); this.rb = new Float64Array(28);
     this.roam = null;
     this._qa = new Quaternion(); this._qb = new Quaternion();
+    this._mv = { id: '', mirror: false, trip: false };
   }
 
-  isSync(u) { return u < 0 || u >= this.nu || this.syncUnits.has(u); }
+  isSync(u) { return this.unison.has(u); }
 
-  // (track, mapped unit, mirror) of dancer i in song unit u
-  state(i, u) {
-    const r = this.recipes[i];
-    if (this.isSync(u) || (r.track === 0 && r.off === 0 && !r.mirror)) return [0, u, false];
-    const [s, L] = this.secOf[u];
-    return [r.track, s + (((u - s + r.off) % L) + L) % L, r.mirror];
+  // source unit of the finale that dancer i plays in song unit u (rows cover u = -1 .. nu; beyond, it carries on)
+  src(i, u) {
+    const c = u < -1 ? -1 : u > this.nu ? this.nu : u;
+    return this.M[i * this.W + c + 1] + (u - c);
+  }
+  mir(i, u) {
+    const c = u < -1 ? -1 : u > this.nu ? this.nu : u;
+    return this.R[i * this.W + c + 1];
+  }
+  // [track, mapped unit, mirror] (debug / panel)
+  state(i, u) { return [0, this.src(i, u), !!this.mir(i, u)]; }
+
+  // when dancer i falls in after the drop, and how far (0 = still idle, 1 = dancing) at song time t
+  startOf(i) { return this.sched.start[i]; }
+  fallIn(i, t) {
+    const a = this.fa[i], b = this.fb[i];
+    return t <= a ? 0 : t >= b ? 1 : smooth((t - a) / (b - a));
   }
 
-  // relative-to-stage qpos of a track at time ts, optionally mirrored, into out
-  _sample([track, m, mirror], u, t, out, travel) {
-    const rig = this.rigs[track];
+  // out = lerp(out, o, w) on the root position + hinges, slerp on the root quaternion (MuJoCo w, x, y, z)
+  mix(out, o, w) {
+    for (let k = 0; k < 28; k++) if (k < 3 || k >= 7) out[k] += (o[k] - out[k]) * w;
+    const qa = this._qa.set(out[4], out[5], out[6], out[3]), qb = this._qb.set(o[4], o[5], o[6], o[3]);
+    qa.slerp(qb, w);
+    out[3] = qa.w; out[4] = qa.x; out[5] = qa.y; out[6] = qa.z;
+    return out;
+  }
+
+  // relative-to-stage qpos of the finale's unit m, played in song unit u at time t, optionally mirrored, into out
+  _sample(m, mirror, u, t, out, travel) {
+    const rig = this.rigs[0];
     const ts = t + (m - u) * this.eight;
     const q = rig.sample(ts, this.tmp);
     out.set(q);
@@ -85,29 +107,21 @@ export class CrewMotion {
   _base(i, t, travel = 1) {
     const u = Math.floor((t - this.anchor) / this.eight);
     const tb = this.anchor + u * this.eight; // start of unit u
-    const cur = this.state(i, u);
-    // nearest boundary: the one at tb (between u-1 and u) or at tb + eight (between u and u+1)
-    let other = null, w = 0;
+    const m = this.src(i, u), r = this.mir(i, u);
+    // nearest boundary: the one at tb (between u-1 and u) or at tb + eight (between u and u+1); no blend while the
+    // dancer just carries on through its run (m - 1 -> m, same mirror)
+    let ou = 0, w = 0;
     if (t - tb < BLEND) {
-      const prev = this.state(i, u - 1);
-      if (!(prev[0] === cur[0] && prev[1] === cur[1] - 1 && prev[2] === cur[2])) {
-        other = [prev, u - 1]; w = 0.5 - 0.5 * ((t - tb) / BLEND); // weight of the previous state
-      }
+      const pm = this.src(i, u - 1), pr = this.mir(i, u - 1);
+      if (!(pm === m - 1 && pr === r)) { ou = u - 1; w = 0.5 - 0.5 * ((t - tb) / BLEND); } // weight of the previous state
     } else if (tb + this.eight - t < BLEND) {
-      const next = this.state(i, u + 1);
-      if (!(next[0] === cur[0] && next[1] === cur[1] + 1 && next[2] === cur[2])) {
-        other = [next, u + 1]; w = 0.5 - 0.5 * ((tb + this.eight - t) / BLEND);
-      }
+      const nm = this.src(i, u + 1), nr = this.mir(i, u + 1);
+      if (!(nm === m + 1 && nr === r)) { ou = u + 1; w = 0.5 - 0.5 * ((tb + this.eight - t) / BLEND); }
     }
-    const q = this._sample(cur, u, t, this.q, travel);
-    if (!other || w <= 0) return q;
-    w = w * w * (3 - 2 * w) ; // smooth
-    const o = this._sample(other[0], other[1], t, this.b, travel);
-    for (let k = 0; k < 28; k++) if (k < 3 || k >= 7) q[k] += (o[k] - q[k]) * w;
-    const qa = this._qa.set(q[4], q[5], q[6], q[3]), qb = this._qb.set(o[4], o[5], o[6], o[3]);
-    qa.slerp(qb, w);
-    q[3] = qa.w; q[4] = qa.x; q[5] = qa.y; q[6] = qa.z;
-    return q;
+    const q = this._sample(m, r, u, t, this.q, travel);
+    if (w <= 0) return q;
+    const o = this._sample(this.src(i, ou), this.mir(i, ou), ou, t, this.b, travel);
+    return this.mix(q, o, w * w * (3 - 2 * w));
   }
 
   // qpos of dancer i at song time t after the drop, in the dancer's slot frame (Crew places that frame at the
@@ -123,12 +137,7 @@ export class CrewMotion {
     if (t - tb < TRIP_BLEND) { v = u - 1; w = 0.5 - 0.5 * ((t - tb) / TRIP_BLEND); } else if (tb + this.eight - t < TRIP_BLEND) { v = u + 1; w = 0.5 - 0.5 * ((tb + this.eight - t) / TRIP_BLEND); }
     if (v === -1 || !(R.kind(i, u) === 1 || R.kind(i, v) === 1) || w <= 0) return out;
     const o = this._seg(i, v, t, travel, this.rb);
-    w = w * w * (3 - 2 * w);
-    for (let k = 0; k < 28; k++) if (k < 3 || k >= 7) out[k] += (o[k] - out[k]) * w;
-    const qa = this._qa.set(out[4], out[5], out[6], out[3]), qb = this._qb.set(o[4], o[5], o[6], o[3]);
-    qa.slerp(qb, w);
-    out[3] = qa.w; out[4] = qa.x; out[5] = qa.y; out[6] = qa.z;
-    return out;
+    return this.mix(out, o, w * w * (3 - 2 * w));
   }
 
   // pose of dancer i at time t under the roaming segment of unit u, into out
@@ -160,25 +169,25 @@ export class CrewMotion {
   setRoam(plan) { this.roam = plan; }
 
   // the move dancer i is doing at time t, for the sim-side tags: { id (library move, without the _M suffix), mirror
-  // (as seen: the unit's own mirroring x the dancer's), trip }. Trips report their travelling clip.
+  // (as seen: the unit's own mirroring x the dancer's), trip }. Trips report their travelling clip. Returns one reused
+  // object (read it straight away).
   moveAt(i, t) {
     const u = Math.floor((t - this.anchor) / this.eight);
-    const R = this.roam;
+    const R = this.roam, mv = this._mv;
     if (R && R.kind(i, u) === 1) {
       const c = R.travel.clips[R.recs[R.off(i, u) + 4]];
-      if (c) return { id: c.src, mirror: !!c.mirrored, trip: true };
+      if (c) { mv.id = c.src; mv.mirror = !!c.mirrored; mv.trip = true; return mv; }
     }
-    const [tr, m, mir] = this.state(i, u);
-    const units = this.rigs[tr].header.units;
-    const unit = units[Math.max(0, Math.min(units.length - 1, m))];
-    return { id: unit.move.replace(/_M$/, ''), mirror: !!unit.mirrored !== !!mir, trip: false };
+    const units = this.rigs[0].header.units;
+    const unit = units[Math.max(0, Math.min(units.length - 1, this.src(i, u)))];
+    mv.id = unit.move.replace(/_M$/, ''); mv.mirror = !!unit.mirrored !== !!this.mir(i, u); mv.trip = false;
+    return mv;
   }
 
   // label for the panel
   describe(i, t) {
     const u = Math.floor((t - this.anchor) / this.eight);
-    const [tr, m, mir] = this.state(i, u);
-    const base = this.isSync(u) ? 'SYNC' : `t${tr}u${m}${mir ? 'M' : ''}`;
+    const base = this.isSync(u) ? 'SYNC' : `u${this.src(i, u)}${this.mir(i, u) ? 'M' : ''}`;
     const k = this.roam ? this.roam.kind(i, u) : 0;
     return k === 1 ? `${base}>TRIP` : k === 2 ? `${base}>TURN` : base;
   }

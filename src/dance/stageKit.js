@@ -6,6 +6,10 @@
 // roaming trips (roam.js) are planned for both orientations, one per idle slot, so mounting on the drop plans nothing.
 // The sim crew (simBody.js: the same 9 dancers as MuJoCo capsule bodies, for the reveal wipe) is built in the same
 // worker and wrapped into its skinned mesh in one more idle slot.
+// Every stage visit is different: a "stage plan" (a fresh random seed -> the fall-in, the move schedule (schedule.js)
+// and the roaming trips for both orientations) is built in idle time, the first one with the kit; DanceStage takes it
+// when it mounts its canvas, and once that visit has ended a new one is built in idle time for the next visit (each
+// roaming plan in its own idle slot, gated like the bodies so it never lands on a drop).
 import { Rig } from './rig.js';
 import { loadCrewMeta, loadFinaleData, loadTravelData } from './data.js';
 import { bodyFromData } from './crewBody.js';
@@ -13,12 +17,11 @@ import { buildSimCrew, simCrewFromData } from './simBody.js';
 import { generateCrew } from './looks.js';
 import { buildNextDancer, createCrewKit, loadCrewTracks, rigCrewDancer, roamPlanFor } from './Crew.jsx';
 import { CrewMotion } from './motion.js';
+import { freshSeed } from './schedule.js';
+import { MIN_GAP } from './roam.js';
 
 export const CREW_SEED = 7;
 export const CREW_LAYOUT = 'L4';
-// roam.js: which trips the crew makes (a number, or [landscape, portrait]; the lab's &roamseed=N overrides it). Picked
-// from seeds 1-40 as one where every dancer but the lead dances in 3-5 areas of the floor in both orientations.
-export const CREW_ROAM_SEED = 24;
 
 const idle = (canBuild) => new Promise((resolve) => {
   const go = () => {
@@ -110,15 +113,8 @@ export function prepareCrew(canBuild) {
         await idle(() => gate());
         kit.sim = sim ? simCrewFromData(sim) : buildSimCrew(rig, kit.looks.length);
       }
-      // the roaming trips (~50 ms each): this orientation first, then the other one, each in its own idle slot
-      if (tracks.travel) {
-        tracks.motion = new CrewMotion(tracks.rigs, tracks.meta);
-        const here = window.innerHeight > window.innerWidth;
-        for (const portrait of [here, !here]) {
-          await idle(() => gate());
-          try { roamPlanFor(tracks.motion, tracks.travel, CREW_LAYOUT, portrait, kit.dancers, CREW_ROAM_SEED); } catch (e) { console.warn('[dance] roaming plan failed:', e); }
-        }
-      }
+      // the first visit's plan: schedule + the roaming trips (~50 ms each, this orientation first, own idle slots)
+      stage = await buildStagePlan(kit, tracks);
       ready = { kit, tracks };
       try { performance.mark('dance-stage:kit-ready'); } catch { /* unsupported */ }
       return ready;
@@ -129,3 +125,55 @@ export function prepareCrew(canBuild) {
 }
 
 export const crewReady = () => ready;
+
+// ---------- stage plans: one fresh seed per visit
+let stage = null; // { seed, motion, used }
+let refreshing = null;
+let visiting = false; // a visit is on: never plan while the crew is dancing
+// The trips can only move dancers apart where they travel; with some seeds two neighbours' in-place moves come closer
+// than roam.js MIN_GAP somewhere no trip can fix (e.g. the fall-in 8-count, which has none). Such a seed is dropped and
+// another drawn (12 of 60 seeds in a test, nearly all on the phone layout), up to PLAN_TRIES; each roaming plan gets its
+// own idle slot, and none runs while a visit is on (a visit that starts before its plan is ready replays the last one).
+const PLAN_TRIES = 4;
+async function buildStagePlan(kit, tracks) {
+  let best = null;
+  for (let a = 0; a < PLAN_TRIES; a++) {
+    const seed = freshSeed();
+    const motion = new CrewMotion(tracks.rigs, tracks.meta, { seed, n: kit.dancers.length });
+    let gap = Infinity;
+    if (tracks.travel) {
+      const here = window.innerHeight > window.innerWidth;
+      for (const portrait of [here, !here]) {
+        await idle(() => gate() && !visiting);
+        try { gap = Math.min(gap, roamPlanFor(motion, tracks.travel, CREW_LAYOUT, portrait, kit.dancers, seed).info.minGap); } catch (e) { console.warn('[dance] roaming plan failed:', e); }
+        if (gap < MIN_GAP) break;
+      }
+    }
+    if (!best || gap > best.gap) best = { seed, motion, gap, tries: a + 1, used: false };
+    if (gap >= MIN_GAP) break;
+  }
+  return best;
+}
+// The plan for the visit that is starting (DanceStage, when its canvas mounts). Calling it again before the next plan
+// is built returns the same one; if a new visit starts before its plan is ready, the last one is replayed.
+export function takeStagePlan() {
+  if (!stage) return null;
+  stage.used = true;
+  visiting = true;
+  return stage;
+}
+// The visit is over (the canvas unmounted): plan the next one.
+export function endStageVisit() {
+  visiting = false;
+  return refreshStagePlan();
+}
+// Build the next visit's plan in idle time, once the current one has been used (DanceStage after a visit; the
+// prefetch on every hold of space).
+export function refreshStagePlan() {
+  if (!ready || !stage || !stage.used || visiting || refreshing) return refreshing;
+  refreshing = buildStagePlan(ready.kit, ready.tracks)
+    .then((s) => { stage = s; return s; })
+    .catch((e) => { console.warn('[dance] stage plan failed:', e); return null; })
+    .finally(() => { refreshing = null; });
+  return refreshing;
+}

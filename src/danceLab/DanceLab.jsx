@@ -5,7 +5,8 @@
 // idle before the drop · ←/→ ±1 8-count · K freeze on the 41.04 s clap · H hide site chrome · L crew layout (L1-L4, off)
 // URL: ?design=A..D, D1..D6&caption=0..3&t=41.04 (freeze at a song time) &chrome=0 &view=verify
 //      &crew=L1..L4 (9-dancer crew, crew/; &seed=N re-rolls the looks; &lineup=front|back: the looks in a row, bind pose;
-//      &roam=0|1 dancers walk to other parts of the stage over the song (default 1); &roamseed=N re-plans the trips;
+//      &roam=0|1 dancers walk to other parts of the stage over the song (default 1); &roamseed=N pins the visit's seed
+//      (fall-in, move schedule, trips; random per load otherwise, the panel's `reseed` draws a new one);
 //      &reveal=0..1 the sim reveal divider (revealed fraction from the right; default parked); &sweep=0 no auto-sweep)
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
@@ -28,7 +29,7 @@ import LowPolyCharacter from './designs/LowPolyCharacter.jsx';
 import { EXTRA_DESIGNS } from './designs/index.js'; // D1-D6 (keys 5-9, 0)
 import Crew from '../dance/Crew.jsx';
 import { LAYOUTS, LAYOUT_KEYS } from '../dance/layouts.js';
-import { CREW_ROAM_SEED } from '../dance/stageKit.js';
+import { freshSeed } from '../dance/schedule.js';
 
 const DESIGNS = {
   A: { name: 'Ink figure', Component: InkFigure, stage: 'blue', dpr: 2 },
@@ -104,7 +105,7 @@ function VerifyCamera({ rig }) {
   return null;
 }
 
-function Stage({ rig, clock, design, verify, statsRef, onContextGone, crew, seed, lineup, roam, roamSeed, reveal }) {
+function Stage({ rig, clock, design, verify, statsRef, onContextGone, crew, seed, lineup, roam, planSeed, reveal }) {
   const { size } = useThree();
   const get = useThree((s) => s.get);
   useEffect(() => { window.__labThree = get; return () => { delete window.__labThree; }; }, [get]);
@@ -112,7 +113,7 @@ function Stage({ rig, clock, design, verify, statsRef, onContextGone, crew, seed
   const narrow = size.width <= 900;
   return (
     <>
-      {crew ? <Crew rig={rig} clock={clock} layout={crew} seed={seed} lineup={lineup} roam={roam} roamSeed={roamSeed} reveal={reveal} top={lineup ? 24 : narrow ? 146 : 108} bottom={lineup ? 24 : 118} debug /> : (
+      {crew ? <Crew rig={rig} clock={clock} layout={crew} seed={seed} lineup={lineup} roam={roam} planSeed={planSeed} reveal={reveal} top={lineup ? 24 : narrow ? 146 : 108} bottom={lineup ? 24 : 118} debug /> : (
         <>
           {verify ? <VerifyCamera rig={rig} /> : <StageCamera top={narrow ? 150 : 112} bottom={narrow ? 150 : 150} />}
           <Design rig={rig} clock={clock} />
@@ -135,7 +136,8 @@ export default function DanceLab() {
   const [crew, setCrew] = useState(() => (LAYOUT_KEYS.includes(params.get('crew')) ? params.get('crew') : null));
   const seed = Number(params.get('seed') || 7);
   const [roam, setRoam] = useState(params.get('roam') !== '0');
-  const roamSeed = params.get('roamseed') ? Number(params.get('roamseed')) : CREW_ROAM_SEED;
+  // the stage visit's seed (fall-in, move schedule, trips): random per load like the page; &roamseed=N pins it
+  const [planSeed, setPlanSeed] = useState(() => (params.get('roamseed') ? Number(params.get('roamseed')) : freshSeed()));
   const lineup = ['front', 'back'].includes(params.get('lineup')) ? params.get('lineup') : null;
   const [glKey, setGlKey] = useState(0); // bumped to remount the canvas if its WebGL context never comes back
   const verify = params.get('view') === 'verify';
@@ -191,7 +193,7 @@ export default function DanceLab() {
       ready: true,
       verifyErr: rig.verifyErr,
       freeze(t, wall = null) { clock.mode = 'frozen'; clock.frozenT = t; clock.frozenWall = wall; },
-      setDesign, setCaption, setChrome, setCrew, setRoam,
+      setDesign, setCaption, setChrome, setCrew, setRoam, setPlanSeed,
       reveal: revealStore,
       setReveal: (r) => setReveal(revealStore, r),
     };
@@ -280,7 +282,7 @@ export default function DanceLab() {
       {rig && (
         <Canvas key={`${design}-${glKey}`} flat dpr={[1, DESIGNS[design].dpr]} gl={{ antialias: !HI_DPI, alpha: true }}
           camera={{ fov: 26, position: [0, 1.25, 8] }} className="dance-lab-canvas">
-          <Stage rig={rig} clock={clock} design={design} verify={verify} statsRef={statsRef} crew={crew} seed={seed} lineup={lineup} roam={roam} roamSeed={roamSeed} reveal={reveal}
+          <Stage rig={rig} clock={clock} design={design} verify={verify} statsRef={statsRef} crew={crew} seed={seed} lineup={lineup} roam={roam} planSeed={planSeed} reveal={reveal}
             onContextGone={() => setGlKey((k) => k + 1)} />
         </Canvas>
       )}
@@ -304,6 +306,7 @@ export default function DanceLab() {
                 {k ? `crew ${k} · ${LAYOUTS[k].name}` : 'solo'}</button>
             ))}
             {crew && <button type="button" className={roam ? 'on' : ''} onClick={(e) => { setRoam((r) => !r); e.currentTarget.blur(); }}>roam {roam ? 'on' : 'off'}</button>}
+            {crew && <button type="button" title="new random seed: fall-in, moves, trips" onClick={(e) => { setPlanSeed(freshSeed()); e.currentTarget.blur(); }}>reseed · {planSeed}</button>}
           </div>
           {reveal && (
             <div className="lab-row">

@@ -5,7 +5,8 @@
 //   inactive (the song fades, the user leaves the stage, a page change) -> the crew freezes on its last frame and fades
 //   out while the deck takes over, then the canvas unmounts and its GPU resources and WebGL context are released.
 // Time source: holdSync.songTime(), the Tone.js player's position in now-get-busy.mp3 as heard (Header.jsx). Before the
-// drop hit (8.37 s) the crew stands and breathes; from it they dance, in sync with the song.
+// drop hit (8.37 s) the crew stands and breathes; from it they fall in one by one (0-2 beats apart) and dance, each on
+// its own moves (schedule.js), in sync with the song. Every visit (each time the canvas mounts) gets a fresh seed.
 // Sim reveal (simReveal.js): a divider parked at the right edge; dragging it left (the handle, or anywhere on the stage)
 // shows the same crew as the MuJoCo capsule bodies on the simulator's floor. Once per stage entry, 0.9 s after the
 // crew fades in, it sweeps out to 35% and back by itself so the gesture is discoverable.
@@ -17,11 +18,11 @@ import CaptionText from './CaptionText.jsx';
 import RevealOverlay from './RevealOverlay.jsx';
 import { armSweep, createReveal, primeClipping, useRevealDrag } from './simReveal.js';
 import { WebGLRecovery } from './useWebGLRecovery.js';
-import { CREW_LAYOUT, CREW_ROAM_SEED, CREW_SEED, crewReady, prepareCrew } from './stageKit.js';
+import { CREW_LAYOUT, CREW_SEED, crewReady, endStageVisit, prepareCrew, refreshStagePlan, takeStagePlan } from './stageKit.js';
 import { holdSync } from '../audio/holdSync.js';
 import './DanceStage.css';
 
-export { prepareCrew };
+export { prepareCrew, refreshStagePlan };
 
 const CAPTION = CAPTIONS[DEFAULT_CAPTION]; // [RL] RL-trained in MuJoCo · I think dancers are safe for now...
 const FADE_OUT_MS = 380;
@@ -58,13 +59,15 @@ function Warmup({ onCompiled, onFirstFrame, live }) {
   return null;
 }
 
-function StageScene({ ready, clock, live, reveal, onCompiled, onFirstFrame, onContextGone }) {
+function StageScene({ ready, plan, clock, live, reveal, onCompiled, onFirstFrame, onContextGone }) {
   const { size } = useThree();
   const narrow = size.width <= 900;
+  // this visit's stage plan (fresh seed: fall-in, move schedule, trips), planned ahead in idle time
+  const tracks = useMemo(() => (plan ? { ...ready.tracks, motion: plan.motion } : ready.tracks), [ready, plan]);
   return (
     <>
       {/* same margins as the lab: below the intro text (146 / 108 px; L4 pins 112 / 150 on desktop), above the caption */}
-      <Crew rig={ready.kit.rig} clock={clock} layout={CREW_LAYOUT} seed={CREW_SEED} kit={ready.kit} tracks={ready.tracks} roam roamSeed={CREW_ROAM_SEED}
+      <Crew rig={ready.kit.rig} clock={clock} layout={CREW_LAYOUT} seed={CREW_SEED} kit={ready.kit} tracks={tracks} roam planSeed={plan ? plan.seed : 1}
         reveal={reveal} top={narrow ? 146 : 108} bottom={118} />
       <Warmup onCompiled={onCompiled} onFirstFrame={onFirstFrame} live={live} />
       <WebGLRecovery onUnrecoverable={onContextGone} />
@@ -79,6 +82,7 @@ export default function DanceStage({ active, onExited }) {
   const [drawn, setDrawn] = useState(false); // first live frame rendered (per canvas)
   const [leaving, setLeaving] = useState(false); // page change in progress
   const [glKey, setGlKey] = useState(0);
+  const [plan, setPlan] = useState(null); // this visit's stage plan (stageKit.js)
   const on = active && !leaving;
 
   useEffect(() => {
@@ -95,17 +99,23 @@ export default function DanceStage({ active, onExited }) {
   }, []);
 
   // mount when active (and built); when inactive, fade the frozen frame out and then unmount everything
+  const mountedRef = useRef(false);
+  mountedRef.current = mounted;
+  useEffect(() => () => { if (mountedRef.current) endStageVisit(); }, []); // unmounted mid-visit (page change)
   const exitedRef = useRef(onExited);
   exitedRef.current = onExited;
   useEffect(() => {
     if (on) {
-      if (ready && !mounted) { mark('mount'); setMounted(true); }
+      // a new visit (the canvas mounts): take its stage plan. A WebGL context recovery remounts only the canvas
+      // inside the same visit and keeps the plan.
+      if (ready && !mounted) { mark('mount'); setPlan(takeStagePlan()); setMounted(true); }
       return undefined;
     }
     const timer = setTimeout(() => {
       setMounted(false);
       setCompiled(false);
       setDrawn(false);
+      if (mounted) endStageVisit(); // the next visit gets a fresh seed, planned in idle time from now
       exitedRef.current?.();
     }, mounted ? FADE_OUT_MS : 0);
     return () => clearTimeout(timer);
@@ -142,7 +152,7 @@ export default function DanceStage({ active, onExited }) {
         camera={{ fov: 30, position: [0, 1.25, 8] }} frameloop={live ? 'always' : 'never'} className="dance-stage-canvas"
         // shader error checks read each program's info log on first use, a ~30 ms stall on a cold shader cache
         onCreated={({ gl }) => { gl.debug.checkShaderErrors = import.meta.env.DEV; }}>
-        <StageScene ready={ready} clock={clock} live={live} reveal={reveal}
+        <StageScene ready={ready} plan={plan} clock={clock} live={live} reveal={reveal}
           onCompiled={() => { mark('compiled'); setCompiled(true); }}
           onFirstFrame={() => { mark('first-frame'); requestAnimationFrame(() => setDrawn(true)); }}
           onContextGone={() => { setCompiled(false); setDrawn(false); setGlKey((k) => k + 1); }} />

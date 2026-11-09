@@ -1,7 +1,8 @@
 // Tiny entry point for the music-stage crew, part of the welcome page's own chunk. The first time space is held it
 // starts downloading the crew chunk and its data (finale.json / .bin, crew.json, travel.json / .bin for the roaming
 // trips) and builds the bodies in idle time, so nothing is left to download or build when the drop lands. Building
-// pauses while the bar is full (the drop is imminent) and for the stage zoom after it.
+// pauses while the bar is full (the drop is imminent) and for the stage zoom after it. Later holds build the next
+// visit's stage plan (stageKit.js refreshStagePlan) if it isn't ready yet.
 import { loadCrewMeta, loadFinaleData, loadTravelData } from './data.js';
 
 export const loadDanceStage = () => import('./DanceStage.jsx');
@@ -17,6 +18,8 @@ function onHold(e) {
 
 let started = null;
 export function prefetchDanceStage() {
+  // every later hold: if the last visit used up its stage plan (fresh seed per visit), build the next one now
+  if (started) started.then(() => loadDanceStage()).then((m) => m.refreshStagePlan()).catch(() => {});
   if (!started) {
     window.addEventListener('dj-hold-change', onHold);
     loadFinaleData().catch(() => {});

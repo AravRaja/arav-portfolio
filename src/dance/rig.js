@@ -126,6 +126,20 @@ export class Rig {
     return q;
   }
 
+  // The waiting pose (breathing, wall clock `clock`) as a qpos with the root at the stage origin, without posing the
+  // rig: the crew crossfades from it into each dancer's first move as it falls in after the drop.
+  idlePose(clock, frozen, out) {
+    out.set(this.idleQ);
+    out[0] = 0; out[1] = 0;
+    const ph = Math.sin((2 * Math.PI * (frozen ? 0 : clock)) / BREATH_PERIOD);
+    const J = this.jointQ;
+    out[J.abdomen_y] += 0.035 * ph;
+    out[J.right_shoulder1] += 0.03 * ph;
+    out[J.left_shoulder1] -= 0.03 * ph;
+    out[2] += 0.004 * ph;
+    return out;
+  }
+
   fk(q) {
     const B = this.bodies, P = this.wpos, Q = this.wquat, v = this._v, jq = this._q;
     for (let i = 0; i < B.length; i++) {
