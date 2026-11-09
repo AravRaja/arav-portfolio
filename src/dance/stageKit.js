@@ -4,9 +4,12 @@
 // while `canBuild()` allows it, so that work never lands on the drop itself or on the deck's zoom into the stage.
 // Without workers it falls back to building everything on the main thread, half a body per idle callback. Last, the
 // roaming trips (roam.js) are planned for both orientations, one per idle slot, so mounting on the drop plans nothing.
+// The sim crew (simBody.js: the same 9 dancers as MuJoCo capsule bodies, for the reveal wipe) is built in the same
+// worker and wrapped into its skinned mesh in one more idle slot.
 import { Rig } from './rig.js';
 import { loadCrewMeta, loadFinaleData, loadTravelData } from './data.js';
 import { bodyFromData } from './crewBody.js';
+import { buildSimCrew, simCrewFromData } from './simBody.js';
 import { generateCrew } from './looks.js';
 import { buildNextDancer, createCrewKit, loadCrewTracks, rigCrewDancer, roamPlanFor } from './Crew.jsx';
 import { CrewMotion } from './motion.js';
@@ -26,25 +29,47 @@ const idle = (canBuild) => new Promise((resolve) => {
   go();
 });
 
-function buildBodiesInWorker(looks) {
-  return new Promise((resolve, reject) => {
-    let worker;
-    try {
-      worker = new Worker(new URL('./bodyWorker.js', import.meta.url), { type: 'module' });
-    } catch (e) { reject(e); return; }
-    const out = new Array(looks.length);
-    let left = looks.length;
-    const done = (err) => { clearTimeout(timer); worker.terminate(); if (err) reject(err); else resolve(out); };
-    const timer = setTimeout(() => done(new Error('body worker timed out')), 20000);
-    worker.onmessage = (e) => {
-      const { id, data, error } = e.data;
-      if (error) { done(new Error(error)); return; }
-      out[id] = data;
-      if (--left === 0) done();
-    };
-    worker.onerror = (e) => { e.preventDefault?.(); done(new Error(e.message || 'body worker failed')); };
-    looks.forEach((l, id) => worker.postMessage({ id, outfit: l.outfit }));
-  });
+// One worker builds the 9 toon bodies (posted right away) and then the sim crew (simBody.js: the 9 capsule bodies,
+// posted once finale.json has the model's geoms). `bodies` resolves with the toon bodies' data, `sim(...)` with the
+// sim crew's; the worker is closed once both are in (or on the first error, when the caller falls back to the main
+// thread).
+function startBodyWorker(looks) {
+  let worker;
+  try {
+    worker = new Worker(new URL('./bodyWorker.js', import.meta.url), { type: 'module' });
+  } catch (e) {
+    const failed = Promise.reject(e);
+    failed.catch(() => {});
+    return { bodies: failed, sim: () => failed };
+  }
+  const out = new Array(looks.length);
+  let left = looks.length;
+  let simJob = null; // { resolve, reject }
+  let bodiesDone, bodiesFail;
+  const bodies = new Promise((res, rej) => { bodiesDone = res; bodiesFail = rej; });
+  let closed = false;
+  const close = () => { if (!closed) { closed = true; clearTimeout(timer); worker.terminate(); } };
+  const fail = (err) => { close(); bodiesFail(err); simJob?.reject(err); };
+  const timer = setTimeout(() => fail(new Error('body worker timed out')), 20000);
+  worker.onmessage = (e) => {
+    const { id, data, error } = e.data;
+    if (error) { fail(new Error(error)); return; }
+    if (id === 'sim') { simJob?.resolve(data); close(); return; }
+    out[id] = data;
+    if (--left === 0) bodiesDone(out);
+  };
+  worker.onerror = (e) => { e.preventDefault?.(); fail(new Error(e.message || 'body worker failed')); };
+  looks.forEach((l, id) => worker.postMessage({ id, outfit: l.outfit }));
+  return {
+    bodies,
+    sim(model, count) {
+      if (closed) return Promise.reject(new Error('body worker closed'));
+      return new Promise((resolve, reject) => {
+        simJob = { resolve, reject };
+        worker.postMessage({ id: 'sim', bodies: model.map((b) => ({ geoms: b.geoms })), count });
+      });
+    },
+  };
 }
 
 let pending = null;
@@ -56,11 +81,18 @@ export function prepareCrew(canBuild) {
   if (canBuild) gate = canBuild;
   if (!pending) {
     pending = (async () => {
-      const bodies = buildBodiesInWorker(generateCrew(CREW_SEED)).catch((e) => {
+      const looks = generateCrew(CREW_SEED);
+      const worker = startBodyWorker(looks);
+      const bodies = worker.bodies.catch((e) => {
         console.warn('[dance] building the crew on the main thread:', e.message || e);
         return null;
       });
       const [data, meta] = await Promise.all([loadFinaleData(), loadCrewMeta().catch(() => null), loadTravelData().catch(() => null)]);
+      // the sim crew's capsule bodies (simBody.js) are built in the same worker, behind the toon bodies
+      const simBuilt = worker.sim(data.header.model.bodies, looks.length).catch((e) => {
+        console.warn('[dance] building the sim crew on the main thread:', e.message || e);
+        return null;
+      });
       const rig = new Rig(data);
       const tracks = await loadCrewTracks(rig, meta);
       const kit = createCrewKit(rig, CREW_SEED);
@@ -72,6 +104,11 @@ export function prepareCrew(canBuild) {
           kit.dancers.push(rigCrewDancer(rig, kit.looks[i], kit.materials, bodyFromData(built[i])));
           if (kit.dancers.length === kit.looks.length) break;
         } else if (buildNextDancer(kit)) break;
+      }
+      {
+        const sim = await simBuilt;
+        await idle(() => gate());
+        kit.sim = sim ? simCrewFromData(sim) : buildSimCrew(rig, kit.looks.length);
       }
       // the roaming trips (~50 ms each): this orientation first, then the other one, each in its own idle slot
       if (tracks.travel) {

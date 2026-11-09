@@ -16,6 +16,7 @@
 .dance-lab-canvas {
   position: fixed !important;
   inset: 0;
+  touch-action: none; /* the sim reveal's touch-drag */
   width: 100vw !important;
   height: 100dvh !important;
   z-index: 1;
@@ -81,3 +82,7 @@
 @media (max-width: 900px) {
   .lab-panel { left: 8px; right: 8px; bottom: auto; top: 62px; max-width: none; opacity: 0.85; }
 }
+
+.lab-reveal { display: inline-flex; align-items: center; gap: 6px; }
+.lab-reveal input { width: 140px; accent-color: #f0ff18; }
+.lab-reveal span { min-width: 3em; color: #f0ff18; }

@@ -1,0 +1,118 @@
+[
+ {
+  "profile": "desktop",
+  "run": 0,
+  "parked": {
+   "frames": 299,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.7,
+   "p99": 16.8,
+   "max": 16.8,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ]
+  },
+  "half": {
+   "frames": 299,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.7,
+   "p99": 16.8,
+   "max": 16.8,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ],
+   "frac": 0.5
+  },
+  "marks": {
+   "kit-ready": 3615,
+   "mount": 12942,
+   "compiled": 13045,
+   "first-frame": 13050
+  },
+  "dropToVisibleMs": 1354,
+  "kitReadyAfterHoldMs": 509,
+  "mountAfterReleaseMs": 812,
+  "firstFrameAfterReleaseMs": 920,
+  "longTasksHold": [],
+  "allLT": [
+   [
+    408,
+    235
+   ],
+   [
+    1382,
+    68
+   ]
+  ],
+  "longTasksDrop": [],
+  "linksAfterFirstFrame": 0,
+  "linksTotal": 7,
+  "dropWindow": {
+   "fps": 60,
+   "max": 16.8,
+   "over20": 0
+  }
+ },
+ {
+  "profile": "desktop",
+  "run": 1,
+  "parked": {
+   "frames": 300,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.7,
+   "p99": 16.8,
+   "max": 16.8,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ]
+  },
+  "half": {
+   "frames": 299,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.7,
+   "p99": 16.8,
+   "max": 16.8,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ],
+   "frac": 0.5
+  },
+  "marks": {
+   "kit-ready": 3376,
+   "mount": 12711,
+   "compiled": 12819,
+   "first-frame": 12837
+  },
+  "dropToVisibleMs": 1345,
+  "kitReadyAfterHoldMs": 494,
+  "mountAfterReleaseMs": 808,
+  "firstFrameAfterReleaseMs": 934,
+  "longTasksHold": [],
+  "allLT": [
+   [
+    1157,
+    70
+   ]
+  ],
+  "longTasksDrop": [],
+  "linksAfterFirstFrame": 0,
+  "linksTotal": 7,
+  "dropWindow": {
+   "fps": 60,
+   "max": 16.8,
+   "over20": 0
+  }
+ }
+]

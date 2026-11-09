@@ -1,0 +1,136 @@
+[
+ {
+  "profile": "phone",
+  "run": 0,
+  "parked": {
+   "frames": 3174,
+   "fps": 634.6,
+   "p50": 1.6,
+   "p95": 3,
+   "p99": 3.3,
+   "max": 4.7,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ]
+  },
+  "half": {
+   "frames": 3169,
+   "fps": 633.4,
+   "p50": 1.7,
+   "p95": 3,
+   "p99": 3.3,
+   "max": 4.2,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ],
+   "frac": 0.5
+  },
+  "marks": {
+   "kit-ready": 4147,
+   "mount": 13463,
+   "compiled": 14059,
+   "first-frame": 14073
+  },
+  "dropToVisibleMs": 1903,
+  "kitReadyAfterHoldMs": 513,
+  "mountAfterReleaseMs": 811,
+  "firstFrameAfterReleaseMs": 1421,
+  "longTasksHold": [],
+  "allLT": [
+   [
+    400,
+    237
+   ],
+   [
+    1355,
+    2257
+   ],
+   [
+    13516,
+    513
+   ]
+  ],
+  "longTasksDrop": [
+   [
+    863,
+    513
+   ]
+  ],
+  "linksAfterFirstFrame": 0,
+  "linksTotal": 7,
+  "dropWindow": {
+   "fps": 737.7,
+   "max": 503.6,
+   "over20": 1
+  }
+ },
+ {
+  "profile": "phone",
+  "run": 1,
+  "parked": {
+   "frames": 3183,
+   "fps": 636.3,
+   "p50": 1.6,
+   "p95": 3,
+   "p99": 3.4,
+   "max": 4.1,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ]
+  },
+  "half": {
+   "frames": 3144,
+   "fps": 628.7,
+   "p50": 1.5,
+   "p95": 3.1,
+   "p99": 3.5,
+   "max": 6,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ],
+   "frac": 0.5
+  },
+  "marks": {
+   "kit-ready": 3490,
+   "mount": 12856,
+   "compiled": 13485,
+   "first-frame": 13488
+  },
+  "dropToVisibleMs": 1932,
+  "kitReadyAfterHoldMs": 459,
+  "mountAfterReleaseMs": 810,
+  "firstFrameAfterReleaseMs": 1442,
+  "longTasksHold": [],
+  "allLT": [
+   [
+    2134,
+    55
+   ],
+   [
+    12909,
+    545
+   ]
+  ],
+  "longTasksDrop": [
+   [
+    863,
+    545
+   ]
+  ],
+  "linksAfterFirstFrame": 0,
+  "linksTotal": 7,
+  "dropWindow": {
+   "fps": 724.1,
+   "max": 543.7,
+   "over20": 1
+  }
+ }
+]

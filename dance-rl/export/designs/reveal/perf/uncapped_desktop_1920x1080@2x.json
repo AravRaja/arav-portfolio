@@ -1,0 +1,164 @@
+[
+ {
+  "profile": "desktop2x",
+  "run": 0,
+  "parked": {
+   "frames": 3051,
+   "fps": 609.8,
+   "p50": 1.8,
+   "p95": 3.1,
+   "p99": 3.5,
+   "max": 5.7,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ]
+  },
+  "half": {
+   "frames": 3087,
+   "fps": 617.1,
+   "p50": 1.6,
+   "p95": 3.1,
+   "p99": 3.5,
+   "max": 5.4,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ],
+   "frac": 0.5
+  },
+  "marks": {
+   "kit-ready": 3749,
+   "mount": 13149,
+   "compiled": 13517,
+   "first-frame": 13531
+  },
+  "dropToVisibleMs": 1381,
+  "kitReadyAfterHoldMs": 478,
+  "mountAfterReleaseMs": 862,
+  "firstFrameAfterReleaseMs": 1244,
+  "longTasksHold": [],
+  "allLT": [
+   [
+    396,
+    295
+   ],
+   [
+    1003,
+    52
+   ],
+   [
+    1439,
+    1507
+   ],
+   [
+    12792,
+    351
+   ],
+   [
+    13202,
+    291
+   ]
+  ],
+  "longTasksDrop": [
+   [
+    505,
+    351
+   ],
+   [
+    915,
+    291
+   ]
+  ],
+  "linksAfterFirstFrame": 0,
+  "linksTotal": 7,
+  "dropWindow": {
+   "fps": 645.2,
+   "max": 351.3,
+   "over20": 2
+  }
+ },
+ {
+  "profile": "desktop2x",
+  "run": 1,
+  "parked": {
+   "frames": 3027,
+   "fps": 605.2,
+   "p50": 1.8,
+   "p95": 3.1,
+   "p99": 3.6,
+   "max": 4.9,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ]
+  },
+  "half": {
+   "frames": 3001,
+   "fps": 599.7,
+   "p50": 1.6,
+   "p95": 3.2,
+   "p99": 3.7,
+   "max": 10.7,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ],
+   "frac": 0.5
+  },
+  "marks": {
+   "kit-ready": 3394,
+   "mount": 12733,
+   "compiled": 13095,
+   "first-frame": 13200
+  },
+  "dropToVisibleMs": 1361,
+  "kitReadyAfterHoldMs": 487,
+  "mountAfterReleaseMs": 809,
+  "firstFrameAfterReleaseMs": 1276,
+  "longTasksHold": [],
+  "allLT": [
+   [
+    1941,
+    57
+   ],
+   [
+    12360,
+    335
+   ],
+   [
+    12786,
+    266
+   ],
+   [
+    13096,
+    103
+   ]
+  ],
+  "longTasksDrop": [
+   [
+    436,
+    335
+   ],
+   [
+    862,
+    266
+   ],
+   [
+    1171,
+    103
+   ]
+  ],
+  "linksAfterFirstFrame": 0,
+  "linksTotal": 7,
+  "dropWindow": {
+   "fps": 680.6,
+   "max": 335.4,
+   "over20": 3
+  }
+ }
+]

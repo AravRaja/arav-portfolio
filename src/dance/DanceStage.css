@@ -52,6 +52,7 @@
   pointer-events: none;
   animation: caption-in 0.5s ease both;
 }
+.dancer-caption-part { white-space: nowrap; }
 .dancer-caption-tag {
   color: #f0ff18;
   font-weight: 600;
@@ -64,4 +65,128 @@
 
 @media (max-width: 900px) {
   .dancer-caption { bottom: 94px; font-size: 9px; }
+}
+
+/* The sim reveal (simReveal.js / RevealOverlay.jsx): a 1 px divider with a small round handle and a `← SIM` tag; right
+   of it the crew is drawn as the MuJoCo capsule bodies on the sim's floor, with the sim's readouts clipped to that side.
+   Positions, the clip and the tag texts are written by the crew's frame loop. Never takes pointer events: the drag is
+   handled on the window (simReveal.js), since the deck's canvas sits on top of the stage. */
+.sim-reveal {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.sim-reveal-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -0.5px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.9);
+  will-change: transform;
+}
+.sim-reveal-handle {
+  position: absolute;
+  left: 0;
+  top: 52%;
+  width: 0;
+  height: 0;
+  will-change: transform;
+}
+.sim-reveal-knob {
+  position: absolute;
+  left: -10px;
+  top: -10px;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: #0117d5;
+  display: grid;
+  place-items: center;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+.sim-reveal-knob svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+html.sim-reveal-hover .sim-reveal-knob,
+html.sim-reveal-dragging .sim-reveal-knob {
+  transform: scale(1.15);
+}
+.sim-reveal-label {
+  position: absolute;
+  right: 18px;
+  top: -7px;
+  font-size: 9px;
+  line-height: 14px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  white-space: nowrap;
+  color: #fff;
+}
+.sim-reveal-clip {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(0 0 0 100%);
+}
+/* deadpan readouts, top left of the sim area, in the contact sheets' label colours */
+.sim-reveal-stats {
+  position: absolute;
+  left: 0;
+  top: 116px;
+  font-size: 9px;
+  line-height: 1.6;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.88);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  will-change: transform;
+}
+.sim-reveal-stats > div:first-child { color: #f2d27c; }
+.sim-reveal.is-open .sim-reveal-stats { opacity: 1; }
+/* a move tag over each capsule dancer: bottom-anchored at the point the frame loop writes */
+.sim-reveal-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 160px;
+  margin-left: -80px;
+  height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  font-size: 8px;
+  line-height: 1.35;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: #f2d27c;
+  text-shadow: 0 1px 0 rgba(4, 12, 24, 0.55);
+  will-change: transform;
+}
+.sim-reveal-tag > span { display: block; }
+.sim-reveal-tag > span:last-child { color: rgba(255, 255, 255, 0.8); letter-spacing: 0.14em; }
+html.sim-reveal-hover, html.sim-reveal-hover * { cursor: ew-resize !important; }
+html.sim-reveal-dragging, html.sim-reveal-dragging * {
+  cursor: ew-resize !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+@media (max-width: 900px) {
+  .sim-reveal-stats { top: 150px; font-size: 8px; }
+  .sim-reveal-tag { font-size: 7.5px; }
 }

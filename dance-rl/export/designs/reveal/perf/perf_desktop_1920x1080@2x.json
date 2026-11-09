@@ -1,0 +1,165 @@
+[
+ {
+  "profile": "desktop2x",
+  "run": 0,
+  "parked": {
+   "frames": 300,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.8,
+   "p99": 16.8,
+   "max": 16.8,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ]
+  },
+  "half": {
+   "frames": 299,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.7,
+   "p99": 16.8,
+   "max": 16.8,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ],
+   "frac": 0.5
+  },
+  "marks": {
+   "kit-ready": 3672,
+   "mount": 12999,
+   "compiled": 13134,
+   "first-frame": 13151
+  },
+  "dropToVisibleMs": 1354,
+  "longTasksHold": [],
+  "allLT": [
+   [
+    400,
+    288
+   ],
+   [
+    1432,
+    70
+   ]
+  ],
+  "longTasksDrop": [],
+  "linksAfterFirstFrame": 0,
+  "linksTotal": 7,
+  "dropWindow": {
+   "fps": 60,
+   "max": 16.8,
+   "over20": 0
+  }
+ },
+ {
+  "profile": "desktop2x",
+  "run": 1,
+  "parked": {
+   "frames": 299,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.8,
+   "p99": 16.8,
+   "max": 16.8,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ]
+  },
+  "half": {
+   "frames": 299,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.7,
+   "p99": 16.8,
+   "max": 16.8,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ],
+   "frac": 0.5
+  },
+  "marks": {
+   "kit-ready": 3386,
+   "mount": 12712,
+   "compiled": 12832,
+   "first-frame": 12839
+  },
+  "dropToVisibleMs": 1342,
+  "longTasksHold": [],
+  "allLT": [
+   [
+    1170,
+    59
+   ]
+  ],
+  "longTasksDrop": [],
+  "linksAfterFirstFrame": 0,
+  "linksTotal": 7,
+  "dropWindow": {
+   "fps": 60,
+   "max": 16.8,
+   "over20": 0
+  }
+ },
+ {
+  "profile": "desktop2x",
+  "run": 2,
+  "parked": {
+   "frames": 300,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.8,
+   "p99": 16.8,
+   "max": 16.8,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ]
+  },
+  "half": {
+   "frames": 299,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.8,
+   "p99": 16.8,
+   "max": 16.8,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ],
+   "frac": 0.5
+  },
+  "marks": {
+   "kit-ready": 3370,
+   "mount": 12693,
+   "compiled": 12822,
+   "first-frame": 12839
+  },
+  "dropToVisibleMs": 1332,
+  "longTasksHold": [],
+  "allLT": [
+   [
+    1141,
+    57
+   ]
+  ],
+  "longTasksDrop": [],
+  "linksAfterFirstFrame": 0,
+  "linksTotal": 7,
+  "dropWindow": {
+   "fps": 60,
+   "max": 16.8,
+   "over20": 0
+  }
+ }
+]

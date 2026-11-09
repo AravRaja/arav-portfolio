@@ -1,0 +1,185 @@
+[
+ {
+  "profile": "phone4x",
+  "run": 0,
+  "parked": {
+   "frames": 299,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.7,
+   "p99": 16.8,
+   "max": 16.8,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ]
+  },
+  "half": {
+   "frames": 299,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.7,
+   "p99": 16.8,
+   "max": 16.8,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ],
+   "frac": 0.5
+  },
+  "marks": {
+   "kit-ready": 4347,
+   "mount": 13322,
+   "compiled": 13472,
+   "first-frame": 13536
+  },
+  "dropToVisibleMs": 1396,
+  "kitReadyAfterHoldMs": 891,
+  "mountAfterReleaseMs": 821,
+  "firstFrameAfterReleaseMs": 1035,
+  "longTasksHold": [
+   [
+    541,
+    172
+   ],
+   [
+    719,
+    126
+   ]
+  ],
+  "allLT": [
+   [
+    421,
+    307
+   ],
+   [
+    877,
+    77
+   ],
+   [
+    1084,
+    105
+   ],
+   [
+    1193,
+    51
+   ],
+   [
+    1658,
+    110
+   ],
+   [
+    4042,
+    172
+   ],
+   [
+    4220,
+    126
+   ],
+   [
+    13474,
+    57
+   ]
+  ],
+  "longTasksDrop": [
+   [
+    973,
+    57
+   ]
+  ],
+  "linksAfterFirstFrame": 0,
+  "linksTotal": 7,
+  "dropWindow": {
+   "fps": 59.6,
+   "max": 50.1,
+   "over20": 1
+  }
+ },
+ {
+  "profile": "phone4x",
+  "run": 1,
+  "parked": {
+   "frames": 299,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.8,
+   "p99": 16.8,
+   "max": 16.8,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ]
+  },
+  "half": {
+   "frames": 299,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.8,
+   "p99": 16.8,
+   "max": 16.8,
+   "drawCalls": [
+    12,
+    12,
+    12
+   ],
+   "frac": 0.5
+  },
+  "marks": {
+   "kit-ready": 4062,
+   "mount": 13063,
+   "compiled": 13213,
+   "first-frame": 13226
+  },
+  "dropToVisibleMs": 1407,
+  "kitReadyAfterHoldMs": 862,
+  "mountAfterReleaseMs": 824,
+  "firstFrameAfterReleaseMs": 987,
+  "longTasksHold": [
+   [
+    530,
+    169
+   ],
+   [
+    703,
+    120
+   ]
+  ],
+  "allLT": [
+   [
+    422,
+    92
+   ],
+   [
+    642,
+    76
+   ],
+   [
+    904,
+    98
+   ],
+   [
+    1426,
+    108
+   ],
+   [
+    3769,
+    169
+   ],
+   [
+    3942,
+    120
+   ]
+  ],
+  "longTasksDrop": [],
+  "linksAfterFirstFrame": 0,
+  "linksTotal": 7,
+  "dropWindow": {
+   "fps": 59.8,
+   "max": 33.3,
+   "over20": 1
+  }
+ }
+]

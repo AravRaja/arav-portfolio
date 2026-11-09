@@ -159,6 +159,21 @@ export class CrewMotion {
 
   setRoam(plan) { this.roam = plan; }
 
+  // the move dancer i is doing at time t, for the sim-side tags: { id (library move, without the _M suffix), mirror
+  // (as seen: the unit's own mirroring x the dancer's), trip }. Trips report their travelling clip.
+  moveAt(i, t) {
+    const u = Math.floor((t - this.anchor) / this.eight);
+    const R = this.roam;
+    if (R && R.kind(i, u) === 1) {
+      const c = R.travel.clips[R.recs[R.off(i, u) + 4]];
+      if (c) return { id: c.src, mirror: !!c.mirrored, trip: true };
+    }
+    const [tr, m, mir] = this.state(i, u);
+    const units = this.rigs[tr].header.units;
+    const unit = units[Math.max(0, Math.min(units.length - 1, m))];
+    return { id: unit.move.replace(/_M$/, ''), mirror: !!unit.mirrored !== !!mir, trip: false };
+  }
+
   // label for the panel
   describe(i, t) {
     const u = Math.floor((t - this.anchor) / this.eight);

@@ -1,0 +1,161 @@
+[
+ {
+  "profile": "desktop2x",
+  "run": 0,
+  "parked": {
+   "frames": 3094,
+   "fps": 618.4,
+   "p50": 1.9,
+   "p95": 3.2,
+   "p99": 3.7,
+   "max": 5.4,
+   "drawCalls": [
+    10,
+    10,
+    10
+   ]
+  },
+  "half": {
+   "frames": 3131,
+   "fps": 625.9,
+   "p50": 1.9,
+   "p95": 3.2,
+   "p99": 3.5,
+   "max": 4.8,
+   "drawCalls": [
+    10,
+    10,
+    10
+   ],
+   "frac": null
+  },
+  "marks": {
+   "kit-ready": 3892,
+   "mount": 13540,
+   "compiled": 13984,
+   "first-frame": 13999
+  },
+  "dropToVisibleMs": 1659,
+  "kitReadyAfterHoldMs": 489,
+  "mountAfterReleaseMs": 1121,
+  "firstFrameAfterReleaseMs": 1580,
+  "longTasksHold": [
+   [
+    377,
+    51
+   ]
+  ],
+  "allLT": [
+   [
+    410,
+    270
+   ],
+   [
+    1410,
+    1445
+   ],
+   [
+    3796,
+    51
+   ],
+   [
+    13122,
+    412
+   ],
+   [
+    13592,
+    355
+   ]
+  ],
+  "longTasksDrop": [
+   [
+    703,
+    412
+   ],
+   [
+    1173,
+    355
+   ]
+  ],
+  "linksAfterFirstFrame": 0,
+  "linksTotal": 5,
+  "dropWindow": {
+   "fps": 659.2,
+   "max": 412.9,
+   "over20": 2
+  }
+ },
+ {
+  "profile": "desktop2x",
+  "run": 1,
+  "parked": {
+   "frames": 2988,
+   "fps": 597,
+   "p50": 1.8,
+   "p95": 3.4,
+   "p99": 4.1,
+   "max": 11.2,
+   "drawCalls": [
+    10,
+    10,
+    10
+   ]
+  },
+  "half": {
+   "frames": 3072,
+   "fps": 614,
+   "p50": 1.9,
+   "p95": 3.2,
+   "p99": 3.7,
+   "max": 5,
+   "drawCalls": [
+    10,
+    10,
+    10
+   ],
+   "frac": null
+  },
+  "marks": {
+   "kit-ready": 3537,
+   "mount": 12859,
+   "compiled": 13443,
+   "first-frame": 13651
+  },
+  "dropToVisibleMs": 1880,
+  "kitReadyAfterHoldMs": 505,
+  "mountAfterReleaseMs": 811,
+  "firstFrameAfterReleaseMs": 1603,
+  "longTasksHold": [],
+  "allLT": [
+   [
+    2110,
+    55
+   ],
+   [
+    12911,
+    490
+   ],
+   [
+    13444,
+    206
+   ]
+  ],
+  "longTasksDrop": [
+   [
+    863,
+    490
+   ],
+   [
+    1396,
+    206
+   ]
+  ],
+  "linksAfterFirstFrame": 0,
+  "linksTotal": 5,
+  "dropWindow": {
+   "fps": 704.1,
+   "max": 485.7,
+   "over20": 2
+  }
+ }
+]

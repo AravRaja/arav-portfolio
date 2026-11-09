@@ -5,7 +5,8 @@
 // idle before the drop · ←/→ ±1 8-count · K freeze on the 41.04 s clap · H hide site chrome · L crew layout (L1-L4, off)
 // URL: ?design=A..D, D1..D6&caption=0..3&t=41.04 (freeze at a song time) &chrome=0 &view=verify
 //      &crew=L1..L4 (9-dancer crew, crew/; &seed=N re-rolls the looks; &lineup=front|back: the looks in a row, bind pose;
-//      &roam=0|1 dancers walk to other parts of the stage over the song (default 1); &roamseed=N re-plans the trips)
+//      &roam=0|1 dancers walk to other parts of the stage over the song (default 1); &roamseed=N re-plans the trips;
+//      &reveal=0..1 the sim reveal divider (revealed fraction from the right; default parked); &sweep=0 no auto-sweep)
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import Header from '../Header.jsx';
@@ -14,7 +15,10 @@ import '../welcomePage/components/SpaceButton.css';
 import '../dance/DanceStage.css'; // the caption
 import './DanceLab.css';
 import { Rig, loadFinale } from '../dance/rig.js';
-import { CAPTIONS } from '../dance/captions.js';
+import { CAPTIONS, DEFAULT_CAPTION } from '../dance/captions.js';
+import CaptionText from '../dance/CaptionText.jsx';
+import RevealOverlay from '../dance/RevealOverlay.jsx';
+import { armSweep, createReveal, setReveal, useRevealDrag } from '../dance/simReveal.js';
 import { WebGLRecovery } from '../dance/useWebGLRecovery.js';
 import { StageCamera } from './designs/common.jsx';
 import InkFigure from './designs/InkFigure.jsx';
@@ -100,7 +104,7 @@ function VerifyCamera({ rig }) {
   return null;
 }
 
-function Stage({ rig, clock, design, verify, statsRef, onContextGone, crew, seed, lineup, roam, roamSeed }) {
+function Stage({ rig, clock, design, verify, statsRef, onContextGone, crew, seed, lineup, roam, roamSeed, reveal }) {
   const { size } = useThree();
   const get = useThree((s) => s.get);
   useEffect(() => { window.__labThree = get; return () => { delete window.__labThree; }; }, [get]);
@@ -108,7 +112,7 @@ function Stage({ rig, clock, design, verify, statsRef, onContextGone, crew, seed
   const narrow = size.width <= 900;
   return (
     <>
-      {crew ? <Crew rig={rig} clock={clock} layout={crew} seed={seed} lineup={lineup} roam={roam} roamSeed={roamSeed} top={lineup ? 24 : narrow ? 146 : 108} bottom={lineup ? 24 : 118} debug /> : (
+      {crew ? <Crew rig={rig} clock={clock} layout={crew} seed={seed} lineup={lineup} roam={roam} roamSeed={roamSeed} reveal={reveal} top={lineup ? 24 : narrow ? 146 : 108} bottom={lineup ? 24 : 118} debug /> : (
         <>
           {verify ? <VerifyCamera rig={rig} /> : <StageCamera top={narrow ? 150 : 112} bottom={narrow ? 150 : 150} />}
           <Design rig={rig} clock={clock} />
@@ -124,7 +128,7 @@ export default function DanceLab() {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const [rig, setRig] = useState(null);
   const [design, setDesign] = useState(() => (KEYS.includes(params.get('design')) ? params.get('design') : 'A'));
-  const [caption, setCaption] = useState(() => Number(params.get('caption') || DESIGNS[params.get('design')]?.caption || (params.get('crew') ? 3 : 0)) % CAPTIONS.length);
+  const [caption, setCaption] = useState(() => Number(params.get('caption') || DESIGNS[params.get('design')]?.caption || (params.get('crew') ? DEFAULT_CAPTION : 0)) % CAPTIONS.length);
   const [chrome, setChrome] = useState(params.get('chrome') !== '0');
   const [panel] = useState(params.get('panel') !== '0');
   const [playing, setPlaying] = useState(false);
@@ -135,6 +139,25 @@ export default function DanceLab() {
   const lineup = ['front', 'back'].includes(params.get('lineup')) ? params.get('lineup') : null;
   const [glKey, setGlKey] = useState(0); // bumped to remount the canvas if its WebGL context never comes back
   const verify = params.get('view') === 'verify';
+  // the sim reveal (crew only): one store for the lab's lifetime
+  const revealStore = useMemo(() => createReveal({
+    r: params.get('reveal') !== null ? Number(params.get('reveal')) : null,
+    sweep: params.get('sweep') !== '0',
+  }), [params]);
+  const reveal = crew && !lineup && !verify ? revealStore : null;
+  useRevealDrag(reveal, !!reveal);
+  const revealRef = useRef(null);
+  const revealValRef = useRef(null);
+  useEffect(() => {
+    if (!reveal || !rig) return undefined;
+    armSweep(reveal, 1.2); // the crew builds on mount; ~0.3 s later it's drawing
+    const f = (frac) => {
+      if (revealRef.current && document.activeElement !== revealRef.current) revealRef.current.value = String(frac);
+      if (revealValRef.current) revealValRef.current.textContent = `${Math.round(frac * 100)}%`;
+    };
+    reveal.listeners.add(f);
+    return () => reveal.listeners.delete(f);
+  }, [reveal, rig]);
   const audio = useMemo(() => {
     const a = new Audio('/now-get-busy.mp3');
     a.preload = 'auto';
@@ -169,9 +192,11 @@ export default function DanceLab() {
       verifyErr: rig.verifyErr,
       freeze(t, wall = null) { clock.mode = 'frozen'; clock.frozenT = t; clock.frozenWall = wall; },
       setDesign, setCaption, setChrome, setCrew, setRoam,
+      reveal: revealStore,
+      setReveal: (r) => setReveal(revealStore, r),
     };
     return () => { delete window.__lab; };
-  }, [rig, clock, params]);
+  }, [rig, clock, params, revealStore]);
 
   const play = (fromT) => {
     clock.mode = 'audio';
@@ -255,13 +280,14 @@ export default function DanceLab() {
       {rig && (
         <Canvas key={`${design}-${glKey}`} flat dpr={[1, DESIGNS[design].dpr]} gl={{ antialias: !HI_DPI, alpha: true }}
           camera={{ fov: 26, position: [0, 1.25, 8] }} className="dance-lab-canvas">
-          <Stage rig={rig} clock={clock} design={design} verify={verify} statsRef={statsRef} crew={crew} seed={seed} lineup={lineup} roam={roam} roamSeed={roamSeed}
+          <Stage rig={rig} clock={clock} design={design} verify={verify} statsRef={statsRef} crew={crew} seed={seed} lineup={lineup} roam={roam} roamSeed={roamSeed} reveal={reveal}
             onContextGone={() => setGlKey((k) => k + 1)} />
         </Canvas>
       )}
+      {rig && reveal && <RevealOverlay store={reveal} />}
       {!verify && (
         <p className="dancer-caption" key={caption}>
-          <span className="dancer-caption-tag">[{cap.tag}]</span> {cap.text}
+          <CaptionText caption={cap} />
         </p>
       )}
       {panel && !verify && (
@@ -279,6 +305,18 @@ export default function DanceLab() {
             ))}
             {crew && <button type="button" className={roam ? 'on' : ''} onClick={(e) => { setRoam((r) => !r); e.currentTarget.blur(); }}>roam {roam ? 'on' : 'off'}</button>}
           </div>
+          {reveal && (
+            <div className="lab-row">
+              <label className="lab-reveal">sim reveal
+                <input ref={revealRef} type="range" min="0" max="1" step="0.01" defaultValue={reveal.r ?? 0}
+                  onInput={(e) => setReveal(reveal, Number(e.currentTarget.value))}
+                  onPointerUp={(e) => e.currentTarget.blur()} />
+                <span ref={revealValRef} />
+              </label>
+              <button type="button" onClick={(e) => { setReveal(reveal, null); e.currentTarget.blur(); }}>park</button>
+              <button type="button" onClick={(e) => { reveal.sweep = 'pending'; reveal.r = null; armSweep(reveal, 0); e.currentTarget.blur(); }}>sweep</button>
+            </div>
+          )}
           <div className="lab-row">
             <button type="button" onClick={(e) => { toggle(); e.currentTarget.blur(); }}>{playing ? 'pause' : 'play from drop'}</button>
             <button type="button" onClick={(e) => { play(8.37 - 4); e.currentTarget.blur(); }}>pre-roll</button>

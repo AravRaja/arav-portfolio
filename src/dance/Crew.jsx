@@ -9,12 +9,15 @@
 // Draw calls: one skinned mesh per dancer (headphones merged into it, skinned to the head bone) + ONE instanced
 // mesh for all 27 contact-shadow blobs = 10.
 // `lineup` ('front' | 'back'): the 9 looks in a row in their bind pose (arms 40 deg out), for judging outfits / hair.
+// `reveal` (simReveal.js store): the sim reveal wipe. The same crew is also drawn as MuJoCo capsule bodies (simBody.js,
+// all 9 in one skinned mesh posed from the same FK as the toon bodies) on the sim's floor + sky (one full-screen quad);
+// a clipping plane through the divider splits the screen between the two sets. 10 + 2 = 12 draw calls.
 import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import {
   CanvasTexture, Color, DynamicDrawUsage, FrontSide, Group, InstancedBufferAttribute,
-  InstancedMesh, MeshToonMaterial, Object3D, PlaneGeometry, ShaderMaterial, Skeleton, SkinnedMesh, Vector3,
+  InstancedMesh, Matrix4, MeshToonMaterial, Object3D, PlaneGeometry, ShaderMaterial, Skeleton, SkinnedMesh, Vector3,
 } from 'three';
 import { Retargeter } from './retarget.js';
 import { StageLights, addRim, getToonRamp } from './shared.jsx';
@@ -25,6 +28,8 @@ import { generateCrew, PALETTE } from './looks.js';
 import { CrewMotion, TravelLib } from './motion.js';
 import { cachedRoamPlan } from './roam.js';
 import { LAYOUTS } from './layouts.js';
+import { SIM_SCALE, buildSimCrew, simRootMatrix } from './simBody.js';
+import { floorEdgeZ, makePlanes, makeSimBackdrop, revealFraction, shortMove, updateClipPlanes } from './simReveal.js';
 
 const TEMPLATE_LABEL = { cropHoodie: 'crop hoodie', teeDress: 'tee dress', allblack: 'all black', tee: 'tee + jeans' };
 
@@ -236,8 +241,8 @@ export function roamPlanFor(motion, travel, layout, portrait, dancers, seeds) {
 // `kit`: prebuilt bodies (createCrewKit, all built); `tracks`: preloaded { meta, rigs } (loadCrewTracks). Both optional.
 // `roam`: dancers walk to other parts of the stage over the song (roam.js); `roamSeed` picks the trips (a number, or
 // [landscape, portrait]).
-export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7, lineup = null, kit = null, tracks = null, roam = true, roamSeed = 1, debug = import.meta.env.DEV }) {
-  const { size } = useThree();
+export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7, lineup = null, kit = null, tracks = null, roam = true, roamSeed = 1, reveal = null, debug = import.meta.env.DEV }) {
+  const { size, gl } = useThree();
   const portrait = size.height > size.width;
   const loaded = useCrewRigs(rig, tracks);
   const own = useMemo(() => {
@@ -268,6 +273,34 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
   }, [roam, lineup, motion, loaded, layout, portrait, shown, roamSeed]);
   useLayoutEffect(() => { if (motion) motion.setRoam(plan); }, [motion, plan]);
 
+  // ---- the sim reveal: capsule crew (prebuilt in the kit on the home page, built here in the lab) + floor / sky quad
+  const simOn = !!reveal && !lineup;
+  const sim = useMemo(() => (simOn ? (kit && kit.sim) || buildSimCrew(rig, dancers.length) : null), [simOn, kit, rig, dancers]);
+  const planes = useMemo(() => makePlanes(), []);
+  const backdrop = useMemo(() => (simOn ? makeSimBackdrop(planes.sim) : null), [simOn, planes]);
+  const simK = useMemo(() => dancers.map((d) => d.rt.k * SIM_SCALE), [dancers]);
+  useLayoutEffect(() => {
+    if (!sim) return undefined;
+    gl.localClippingEnabled = true;
+    materials.base.clippingPlanes = [planes.toon];
+    materials.black.clippingPlanes = [planes.toon];
+    sim.material.clippingPlanes = [planes.sim];
+    shadows.material.clippingPlanes = [planes.none];
+    // dancers that aren't mounted (a layout's phone count) collapse to nothing
+    for (let b = shown.length * sim.nb; b < sim.bones.length; b++) sim.bones[b].matrixWorld.makeScale(0, 0, 0);
+    return () => {
+      materials.base.clippingPlanes = null;
+      materials.black.clippingPlanes = null;
+      sim.material.clippingPlanes = null;
+      shadows.material.clippingPlanes = null;
+      for (const d of dancers) d.mesh.visible = true;
+    };
+  }, [sim, gl, materials, planes, shown, dancers, shadows]);
+  useEffect(() => () => {
+    if (sim) { sim.geometry.dispose(); sim.material.dispose(); sim.mesh.skeleton.dispose(); }
+    if (backdrop) { backdrop.geometry.dispose(); backdrop.material.dispose(); }
+  }, [sim, backdrop]);
+
   useLayoutEffect(() => {
     shown.forEach((d, i) => {
       const [x, z, yaw, s] = slots[i];
@@ -293,6 +326,13 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
         return [+ax.toFixed(2), +ay.toFixed(2)];
       }) : []),
       tris: shown.reduce((a, d) => a + d.tris, 0),
+      // sim reveal: the capsule crew's bones (dancer i, body b = bones[i * nb + b]) and the toon retargeters, so a
+      // check can compare the two bodies' poses
+      sim: sim ? { bones: sim.bones, nb: sim.nb, tris: sim.tris } : null,
+      rts: shown.map((d) => d.rt),
+      simK,
+      motion,
+      travel: L.travel,
       // stage positions of every dancer's feet + root over [t0, t1] (foot-slide / pop checks; poses the crew, debug only)
       track: (t0, t1, fps = 30) => {
         if (!motion) return null;
@@ -312,13 +352,47 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
       },
     };
     return () => { delete window.__crew; };
-  }, [looks, layout, seed, portrait, loaded, motion, dancers, shown, count, lineup, rig, L, debug, plan]);
+  }, [looks, layout, seed, portrait, loaded, motion, dancers, shown, count, lineup, rig, L, debug, plan, sim, simK]);
 
   const dummy = useMemo(() => new Object3D(), []);
   const fwd = useMemo(() => new Vector3(), []);
   const tmpP = useMemo(() => new Vector3(), []);
-  useFrame(() => {
+  const simM = useMemo(() => new Matrix4(), []);
+  const simHip = useMemo(() => new Vector3(), []);
+  const tmpM = useMemo(() => new Matrix4(), []);
+  // tag layout: anchors (ax, ay), sizes (tw, th; 8 px mono), stacked spot (py) and its eased offset (oy)
+  const tagState = useMemo(() => ({ key: [], x: [], y: [], ax: [], ay: [], tw: [], th: [], py: [], oy: [], charW: 5.1, lineH: 11 }), []);
+  useFrame((state) => {
     const s = clock.read();
+    // the divider: where it is this frame (parked / sweeping / dragged), the clip planes through it, the overlay
+    let frac = 0;
+    if (sim) {
+      const { width: w, height: h } = state.size;
+      frac = revealFraction(reveal, w);
+      const x = w * (1 - frac);
+      reveal.w = w; reveal.h = h; reveal.frac = frac;
+      updateClipPlanes(state.camera, (2 * x) / w - 1, planes.sim, planes.toon);
+      const toonOn = frac < 0.999, simOn2 = frac > 0.0005;
+      for (const d of shown) d.mesh.visible = toonOn;
+      sim.mesh.visible = simOn2;
+      backdrop.visible = simOn2;
+      const u = backdrop.material.uniforms;
+      u.uInvProj.value = state.camera.projectionMatrixInverse;
+      u.uCamWorld.value = state.camera.matrixWorld;
+      u.uDpr.value = state.gl.getPixelRatio();
+      u.uZFar.value = floorEdgeZ(state.camera);
+      u.uSquare.value = 0.9;
+      if (x !== reveal.x) {
+        reveal.x = x;
+        const D = reveal.dom;
+        if (D.line) D.line.style.transform = `translate3d(${x.toFixed(1)}px, 0, 0)`;
+        if (D.handle) D.handle.style.transform = `translate3d(${Math.max(14, Math.min(w - 12, x)).toFixed(1)}px, 0, 0)`;
+        if (D.clip) D.clip.style.clipPath = `inset(0 0 0 ${x.toFixed(1)}px)`;
+        if (D.stats) D.stats.style.transform = `translate3d(${(x + 14).toFixed(1)}px, 0, 0)`;
+        if (D.root) D.root.classList.toggle('is-open', frac > 0.15);
+        for (const f of reveal.listeners) f(frac);
+      }
+    }
     const op = shadows.geometry.attributes.aOpacity;
     if (lineup) { // bind pose: nothing to pose, just the foot / hip blobs under the static skeleton
       shown.forEach((d, i) => {
@@ -347,6 +421,12 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
         rig.fk(q);
       }
       d.rt.update();
+      if (sim) { // the capsule body: the rig's bodies, in the toon dancer's frame (scaled by its k)
+        const I = rig.index;
+        simHip.copy(rig.wpos[I.left_thigh]).add(rig.wpos[I.right_thigh]).multiplyScalar(0.5);
+        simM.multiplyMatrices(d.outer.matrixWorld, simRootMatrix(d.rt.k, simK[i], simHip, tmpM));
+        for (let b = 0, o = i * sim.nb; b < sim.nb; b++) sim.bones[o + b].matrixWorld.multiplyMatrices(simM, rig.world[b]);
+      }
       // shadows (dancer-local, then into the stage through the dancer's slot transform)
       const rt = d.rt;
       for (let k = 0; k < 3; k++) {
@@ -375,12 +455,64 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
     });
     shadows.instanceMatrix.needsUpdate = true;
     op.needsUpdate = true;
+    // move tags over the sim bodies (only while some of the sim is showing; the overlay clips them to it)
+    const tags = sim && reveal.dom.tags;
+    if (tags && frac > 0.0005) {
+      const { width: w, height: h } = state.size;
+      const head = rig.index.head;
+      const T = tagState;
+      shown.forEach((d, i) => {
+        tmpP.setFromMatrixPosition(sim.bones[i * sim.nb + head].matrixWorld);
+        tmpP.y += 0.17 * d.outer.scale.y * simK[i]; // just over the head sphere
+        tmpP.project(state.camera);
+        T.ax[i] = (tmpP.x * 0.5 + 0.5) * w; T.ay[i] = (0.5 - tmpP.y * 0.5) * h;
+        let key = 'IDLE', mir = false;
+        if (!s.idle && motion && s.t >= rig.drop) {
+          const m = motion.moveAt(i, s.t);
+          key = shortMove(m.id); mir = m.mirror;
+        }
+        const el = tags[i];
+        const txt = mir ? `${key}|MIRROR` : key;
+        if (el && txt !== T.key[i]) {
+          T.key[i] = txt;
+          el.firstChild.textContent = key;
+          el.lastChild.textContent = mir ? 'MIRROR' : '';
+        }
+        T.tw[i] = key.length * T.charW + 8; T.th[i] = (mir ? 2 : 1) * T.lineH;
+      });
+      // keep the tags from piling up: front dancers (lower on screen) keep theirs, the ones behind step up over them
+      const order = shown.map((_, i) => i).sort((p, q) => T.ay[q] - T.ay[p]);
+      order.forEach((i, n) => {
+        let y = T.ay[i];
+        for (let pass = 0; pass < 4; pass++) {
+          let hit = false;
+          for (let m = 0; m < n; m++) {
+            const j = order[m];
+            if (Math.abs(T.ax[i] - T.ax[j]) < (T.tw[i] + T.tw[j]) / 2 && y > T.py[j] - T.th[j] - 1 && y - T.th[i] < T.py[j] + 1) {
+              y = T.py[j] - T.th[j] - 2; hit = true;
+            }
+          }
+          if (!hit) break;
+        }
+        T.py[i] = y;
+        // ease towards the stacked spot so tags don't jump when two dancers cross
+        T.oy[i] = T.oy[i] == null ? y - T.ay[i] : T.oy[i] + (y - T.ay[i] - T.oy[i]) * 0.25;
+        const el = tags[i];
+        const x = Math.round(T.ax[i]), yy = Math.round(T.ay[i] + T.oy[i]);
+        if (el && (x !== T.x[i] || yy !== T.y[i])) {
+          T.x[i] = x; T.y[i] = yy;
+          el.style.transform = `translate3d(${x}px, ${yy}px, 0)`;
+        }
+      });
+    }
   }, -1);
 
   return (
     <>
       <CrewCamera slots={slots} layout={layout} top={top} bottom={bottom} portrait={portrait} lineup={lineup} debug={debug} />
       <StageLights keyLight={2.1} hemi={1.4} />
+      {backdrop && <primitive object={backdrop} />}
+      {sim && <primitive object={sim.mesh} />}
       <primitive object={shadows} />
       {shown.map((d, i) => <primitive key={i} object={d.outer} />)}
       {lineup === 'front' && shown.map((d, i) => (
