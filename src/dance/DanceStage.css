@@ -30,8 +30,8 @@
   transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* Caption under the crew (shared with the dev lab): the bracketed mono label style of the welcome page, small and
-   muted, between the crew and the space key */
+/* Caption under the crew (shared with the dev lab): the mono label style of the welcome page, small and muted,
+   centred between the crew and the space key */
 .dancer-caption {
   position: fixed;
   left: 50%;
@@ -53,11 +53,6 @@
   animation: caption-in 0.5s ease both;
 }
 .dancer-caption-part { white-space: nowrap; }
-.dancer-caption-tag {
-  color: #f0ff18;
-  font-weight: 600;
-  margin-right: 0.35em;
-}
 @keyframes caption-in {
   from { opacity: 0; transform: translate(-50%, 4px); }
   to { opacity: 1; transform: translate(-50%, 0); }
@@ -68,7 +63,7 @@
 }
 
 /* The sim reveal (simReveal.js / RevealOverlay.jsx): a 1 px divider with a small round handle and a `← SIM` tag; right
-   of it the crew is drawn as the MuJoCo capsule bodies on the sim's floor, with the sim's readouts clipped to that side.
+   of it the crew is drawn as the MuJoCo capsule bodies on the sim's floor, with a move tag over each, clipped to that side.
    Positions, the clip and the tag texts are written by the crew's frame loop. Never takes pointer events: the drag is
    handled on the window (simReveal.js), since the deck's canvas sits on top of the stage. */
 .sim-reveal {
@@ -139,23 +134,6 @@ html.sim-reveal-dragging .sim-reveal-knob {
   inset: 0;
   clip-path: inset(0 0 0 100%);
 }
-/* deadpan readouts, top left of the sim area, in the contact sheets' label colours */
-.sim-reveal-stats {
-  position: absolute;
-  left: 0;
-  top: 116px;
-  font-size: 9px;
-  line-height: 1.6;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  white-space: nowrap;
-  color: rgba(255, 255, 255, 0.88);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  will-change: transform;
-}
-.sim-reveal-stats > div:first-child { color: #f2d27c; }
-.sim-reveal.is-open .sim-reveal-stats { opacity: 1; }
 /* a move tag over each capsule dancer: bottom-anchored at the point the frame loop writes */
 .sim-reveal-tag {
   position: absolute;
@@ -187,6 +165,5 @@ html.sim-reveal-dragging, html.sim-reveal-dragging * {
 }
 
 @media (max-width: 900px) {
-  .sim-reveal-stats { top: 150px; font-size: 8px; }
   .sim-reveal-tag { font-size: 7.5px; }
 }

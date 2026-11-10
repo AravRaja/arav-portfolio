@@ -399,8 +399,6 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
         if (D.line) D.line.style.transform = `translate3d(${x.toFixed(1)}px, 0, 0)`;
         if (D.handle) D.handle.style.transform = `translate3d(${Math.max(14, Math.min(w - 12, x)).toFixed(1)}px, 0, 0)`;
         if (D.clip) D.clip.style.clipPath = `inset(0 0 0 ${x.toFixed(1)}px)`;
-        if (D.stats) D.stats.style.transform = `translate3d(${(x + 14).toFixed(1)}px, 0, 0)`;
-        if (D.root) D.root.classList.toggle('is-open', frac > 0.15);
         for (const f of reveal.listeners) f(frac);
       }
     }
@@ -424,12 +422,13 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
     }
     for (let j = shown.length * 3; j < op.count; j++) op.array[j] = 0;
     shown.forEach((d, i) => {
-      if (s.idle || !motion || s.t < rig.drop) {
+      // dancing from the drop, or earlier when the stage clock says so (`from`: an off-beat release, DanceStage.jsx)
+      if (s.idle || !motion || (s.t < rig.drop && s.from == null)) {
         rig.pose(s.t, { idle: s.idle, clock: s.clock + i * 0.41, frozen: s.frozen });
       } else {
         const q = motion.sample(i, s.t, L.travel);
-        // the fall-in: each dancer stays in its idle pose for 0-2 beats after the drop, then crossfades into its move
-        const w = motion.fallIn(i, s.t);
+        // the fall-in: from the drop each dancer eases out of its idle pose into its move (fully in at its own time)
+        const w = motion.fallIn(i, s.t, s.from ?? rig.drop);
         if (w < 1) motion.mix(q, rig.idlePose(s.clock + i * 0.41, s.frozen, idleQ), 1 - w);
         rig.offsetX = 0; rig.offsetY = 0;
         rig.fk(q);
@@ -481,7 +480,7 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
         tmpP.project(state.camera);
         T.ax[i] = (tmpP.x * 0.5 + 0.5) * w; T.ay[i] = (0.5 - tmpP.y * 0.5) * h;
         let key = 'IDLE', mir = false;
-        if (!s.idle && motion && s.t >= rig.drop && motion.fallIn(i, s.t) > 0.5) {
+        if (!s.idle && motion && (s.t >= rig.drop || s.from != null) && motion.fallIn(i, s.t, s.from ?? rig.drop) > 0.5) {
           const m = motion.moveAt(i, s.t);
           key = shortMove(m.id); mir = m.mirror;
         }

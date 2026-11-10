@@ -4,9 +4,10 @@
 //   active -> canvas mounts, shaders compile off the main thread (compileAsync), then the crew fades / scales in;
 //   inactive (the song fades, the user leaves the stage, a page change) -> the crew freezes on its last frame and fades
 //   out while the deck takes over, then the canvas unmounts and its GPU resources and WebGL context are released.
-// Time source: holdSync.songTime(), the Tone.js player's position in now-get-busy.mp3 as heard (Header.jsx). Before the
-// drop hit (8.37 s) the crew stands and breathes; from it they fall in one by one (0-2 beats apart) and dance, each on
-// its own moves (schedule.js), in sync with the song. Every visit (each time the canvas mounts) gets a fresh seed.
+// Time source: holdSync.songTime(), the Tone.js player's position in now-get-busy.mp3 as heard (Header.jsx). The crew
+// dances from the drop hit (8.37 s) or from its first frame on screen, whichever is first (the clock below), each dancer
+// on its own moves (schedule.js), all fully in before the crew can first be seen (stageTiming.js), in sync with the
+// song. Every visit (each time the canvas mounts) gets a fresh seed.
 // Sim reveal (simReveal.js): a divider parked at the right edge; dragging it left (the handle, or anywhere on the stage)
 // shows the same crew as the MuJoCo capsule bodies on the simulator's floor. Once per stage entry, 0.9 s after the
 // crew fades in, it sweeps out to 35% and back by itself so the gesture is discoverable.
@@ -19,12 +20,13 @@ import RevealOverlay from './RevealOverlay.jsx';
 import { armSweep, createReveal, primeClipping, useRevealDrag } from './simReveal.js';
 import { WebGLRecovery } from './useWebGLRecovery.js';
 import { CREW_LAYOUT, CREW_SEED, crewReady, endStageVisit, prepareCrew, refreshStagePlan, takeStagePlan } from './stageKit.js';
+import { crewVisibleAfterDrop, preDropSongTime } from './stageTiming.js';
 import { holdSync } from '../audio/holdSync.js';
 import './DanceStage.css';
 
 export { prepareCrew, refreshStagePlan };
 
-const CAPTION = CAPTIONS[DEFAULT_CAPTION]; // [RL] RL-trained in MuJoCo · I think dancers are safe for now...
+const CAPTION = CAPTIONS[DEFAULT_CAPTION]; // RL-trained in MuJoCo · I think dancers are safe for now...
 const FADE_OUT_MS = 380;
 const HI_DPI = typeof window !== 'undefined' && window.devicePixelRatio >= 1.5;
 // phones: cap the pixel ratio at 1.5 (the crew is small on screen, and phones are fill-rate bound); desktop: 2
@@ -100,6 +102,7 @@ export default function DanceStage({ active, onExited }) {
 
   // mount when active (and built); when inactive, fade the frozen frame out and then unmount everything
   const mountedRef = useRef(false);
+  const early = useRef(null); // this visit's early start (see the clock below): { from, t0, wall } (song s, song s, wall s)
   mountedRef.current = mounted;
   useEffect(() => () => { if (mountedRef.current) endStageVisit(); }, []); // unmounted mid-visit (page change)
   const exitedRef = useRef(onExited);
@@ -108,7 +111,7 @@ export default function DanceStage({ active, onExited }) {
     if (on) {
       // a new visit (the canvas mounts): take its stage plan. A WebGL context recovery remounts only the canvas
       // inside the same visit and keeps the plan.
-      if (ready && !mounted) { mark('mount'); setPlan(takeStagePlan()); setMounted(true); }
+      if (ready && !mounted) { mark('mount'); early.current = null; setPlan(takeStagePlan()); setMounted(true); }
       return undefined;
     }
     const timer = setTimeout(() => {
@@ -122,16 +125,31 @@ export default function DanceStage({ active, onExited }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [on, ready]);
 
-  // Song clock for the crew: the player's position as heard; idle (breathing) until the drop hit
+  // Song clock for the crew: the player's position as heard. The dance starts at whichever comes first: the drop hit,
+  // or the crew starting to show. Normally the drop comes first (the zoom into the stage takes ~0.8 s after it), and
+  // the fall-in runs from the drop (`from`). After an off-beat release the drop waits for the loop's next bar, so the
+  // crew can show up to ~1.2 s before it: then the first frame it draws (one frame before its fade-in starts) starts
+  // the dance, at the song time the loop position stands for (stageTiming.js preDropSongTime: same bar grid, so the
+  // moves are on the beat and join the real song time seamlessly when the drop lands; nothing restarts). Its fall-in is
+  // the usual one moved earlier by crewVisibleAfterDrop, so it is already over at that first frame. If the loop
+  // position is unusable, the stage clock runs on from that frame instead. Crew only reads this while drawing.
   const clock = useMemo(() => ({
     read() {
       const t = holdSync.songTime();
       const wall = performance.now() / 1000;
       const drop = ready ? ready.kit.rig.drop : 8.37;
-      if (t === null || t < drop) return { t: t ?? 0, idle: true, clock: wall, frozen: false };
-      return { t, idle: false, clock: wall, frozen: false };
+      if (t !== null && t >= drop) return { t, idle: false, clock: wall, frozen: false, from: early.current ? early.current.from : drop };
+      let tv = preDropSongTime(t, drop);
+      if (!early.current) { const t0 = tv ?? drop; early.current = { from: t0 - crewVisibleAfterDrop(), t0, wall }; }
+      if (tv === null) tv = early.current.t0 + (wall - early.current.wall);
+      return { t: tv, idle: false, clock: wall, frozen: false, from: early.current.from };
     },
   }), [ready]);
+  useEffect(() => {
+    if (!import.meta.env.DEV) return undefined;
+    window.__danceClock = { clock, early }; // dev / capture hook
+    return () => { if (window.__danceClock?.clock === clock) delete window.__danceClock; };
+  }, [clock]);
 
   // one reveal per stage entry (a fresh canvas): parked, with its sweep still to come
   const reveal = useMemo(() => (mounted ? createReveal() : null), [mounted]);

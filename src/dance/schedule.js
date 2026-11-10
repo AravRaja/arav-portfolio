@@ -15,16 +15,21 @@
 //     song's energy tiers), avoid repeating your own last move, avoid the finale's own unit (that's the "script").
 // Unison payoffs (UNISON_UNITS): on these 8-counts everyone snaps to the finale's own unit, not mirrored (the lead's
 // move), crossfading in and out; the 8-count after one, everyone picks afresh, so they split again at once.
-// Fall-in: until the drop (8.37 s) everyone idles; then each dancer starts after a random 0-2 beats (half-beat steps),
-// crossfading from its idle pose over +-FALL_IN_BLEND s (never before the drop). Nobody is in unison at the drop.
+// Fall-in: until the drop (8.37 s) everyone idles. From the drop itself every dancer is already easing out of its idle
+// pose into its own move; dancer i is fully in at start[i] + FALL_IN_BLEND, with start[i] = drop + a random delay. On
+// the page the crew only shows ~0.8 s after the drop (the zoom into the stage), so the delays are drawn within
+// `fallInWindow` s (stageTiming.js), which has the last dancer fully in 0.25 s before the crew can first be seen: on the
+// half-beat grid (0..FALL_IN_STEPS half-beats) when the window holds at least two half-beats, else on the 60 Hz frame
+// grid. The variety at the first visible frame comes from the moves, mirrors and positions, which differ every visit.
 
 // The two biggest section changes (public/dance/crew.json): the sections starting at unit 14 (68.13 s, with the 1-bar
 // breakdown at 68.14 s) and unit 26 (119.13 s, its breakdown at 121.26 s). Edit this list to move / add payoffs; the
 // roaming planner keeps its trips off them (CrewMotion.noTrip).
 export const UNISON_UNITS = [14, 26];
-export const FALL_IN_STEPS = 4; // start delay: 0..4 half-beats after the drop (0-2 beats)
+export const FALL_IN_STEPS = 4; // start delay: at most 0..4 half-beats after the drop (0-2 beats), if the window allows
 export const FALL_IN_MIN_SPREAD = 3; // half-beats: re-draw until the first and last are at least 1.5 beats apart
-export const FALL_IN_BLEND = 0.35; // s, idle -> dance crossfade (half-width)
+export const FALL_IN_BLEND = 0.35; // s, idle -> dance crossfade: from the drop until FALL_IN_BLEND after the start
+const FALL_IN_FRAME = 1 / 60; // s, the delay grid when the window is too short for the half-beat one
 const RUN = [2, 4]; // 8-counts a dancer stays on one run of the finale before it switches
 const MAX_PER_MOVE = 2;
 const MAX_FUSED = 1;
@@ -46,10 +51,11 @@ export function freshSeed() {
   return r % 1000000;
 }
 
-// header: finale.json header (units, drop, beat, eight, grid_anchor, duration); sections: crew.json [start, end) pairs.
+// header: finale.json header (units, drop, beat, eight, grid_anchor, duration); sections: crew.json [start, end) pairs;
+// fallInWindow: the longest fall-in delay after the drop, s (null: the full 0-2 beats).
 // Returns { M: Int16Array, R: Uint8Array } (source unit + mirror per dancer per song unit u = -1 .. nu, row i * (nu + 2)
 // + u + 1), start (fall-in time per dancer), info.
-export function planSchedule({ header, sections, n, seed = 1, unison = UNISON_UNITS }) {
+export function planSchedule({ header, sections, n, seed = 1, unison = UNISON_UNITS, fallInWindow = null }) {
   const units = header.units, nu = units.length;
   const rng = mulberry32(((seed >>> 0) * 2654435761) ^ 0x5eed5);
   const ri = (a, b) => a + Math.floor(rng() * (b - a + 1));
@@ -67,14 +73,20 @@ export function planSchedule({ header, sections, n, seed = 1, unison = UNISON_UN
   const secOf = new Int8Array(nu);
   (sections || [[0, nu]]).forEach(([a, b], s) => { for (let u = a; u < b && u < nu; u++) secOf[u] = s; });
 
-  // fall-in: 0..FALL_IN_STEPS half-beats, the earliest at the drop itself
+  // fall-in delays: on the half-beat grid if the window holds 2+ half-beats, else on the frame grid; the earliest at the
+  // drop itself, re-drawn until the first and last are a fair way apart (so it isn't one block in the lab)
+  const half = header.beat / 2, win = fallInWindow == null ? FALL_IN_STEPS * half : Math.max(0, fallInWindow);
+  const onBeat = win + 1e-9 >= 2 * half;
+  const step = onBeat ? half : FALL_IN_FRAME;
+  const maxK = onBeat ? Math.min(FALL_IN_STEPS, Math.floor(win / half + 1e-9)) : Math.floor(win / FALL_IN_FRAME + 1e-9);
+  const minSpread = onBeat ? Math.min(FALL_IN_MIN_SPREAD, maxK) : Math.ceil(maxK / 2);
   let steps;
   do {
-    steps = Array.from({ length: n }, () => ri(0, FALL_IN_STEPS));
+    steps = Array.from({ length: n }, () => ri(0, maxK));
     const lo = Math.min(...steps);
     steps = steps.map((k) => k - lo);
-  } while (n > 2 && Math.max(...steps) < FALL_IN_MIN_SPREAD);
-  const start = Float64Array.from(steps, (k) => header.drop + (k * header.beat) / 2);
+  } while (n > 2 && maxK > 0 && Math.max(...steps) < minSpread);
+  const start = Float64Array.from(steps, (k) => header.drop + k * step);
 
   const cur = new Int16Array(n).fill(-1), mir = new Uint8Array(n), runLeft = new Int8Array(n), lastKey = new Int16Array(n).fill(-1);
   const seenUsed = new Uint8Array(keys.length * 2), keyCount = new Uint8Array(keys.length), secCount = new Uint8Array(sections ? sections.length : 1);
@@ -126,9 +138,13 @@ export function planSchedule({ header, sections, n, seed = 1, unison = UNISON_UN
     }
     for (let i = 0; i < n; i++) { M[i * W + u + 1] = cur[i]; R[i * W + u + 1] = mir[i]; lastKey[i] = keyOf[cur[i]]; }
   }
-  // u = -1 (drop -> first downbeat) leads into unit 0's run; u = nu carries on past the end
+  // u = -1 (drop -> first downbeat; on an off-beat release also up to a bar before the drop, see DanceStage) leads into
+  // unit 0's run. Unit -1 of the finale is the standing before the drop, so a dancer starting on unit 0 plays unit 1
+  // with its mirror flipped there instead (units 0 / 1 are one move and its mirror: the same move, an 8-count earlier),
+  // crossfaded into unit 0 at the first downbeat like any switch. u = nu carries on past the end.
   for (let i = 0; i < n; i++) {
     M[i * W] = M[i * W + 1] - 1; R[i * W] = R[i * W + 1];
+    if (M[i * W] < 0) { M[i * W] = 1; R[i * W] = 1 - R[i * W]; }
     M[i * W + nu + 1] = M[i * W + nu] + 1; R[i * W + nu + 1] = R[i * W + nu];
   }
 
@@ -153,7 +169,8 @@ export function planSchedule({ header, sections, n, seed = 1, unison = UNISON_UN
     if (f > MAX_FUSED) dup.fused++;
   }
   const info = {
-    seed, unison: [...U], start: [...start].map((t) => +t.toFixed(4)), fallInHalfBeats: steps,
+    seed, unison: [...U], start: [...start].map((t) => +t.toFixed(4)), fallInGrid: onBeat ? 'half-beat' : 'frame',
+    fallInStep: +step.toFixed(5), fallInSteps: steps, fallInWindow: +win.toFixed(4),
     spreadS: +(Math.max(...start) - Math.min(...start)).toFixed(4), pool: (maxM + 1) * 2, moves: keys.length, dup, relaxed, switches,
   };
   return { M, R, W, start, info };

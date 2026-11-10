@@ -3,13 +3,15 @@
 // mirrored left <-> right, carried on for a few 8-counts and then swapped for another, so no two dancers share a move
 // and the crew never looks scripted. On the unison payoffs (schedule.js UNISON_UNITS) everyone snaps to the finale's
 // own unit, not mirrored. Changes of (unit, mirror) at an 8-count boundary are crossfaded over +-BLEND s (hinge angles
-// lerp, root slerp), so nobody pops. Before the drop everyone idles; each dancer falls in at its own time just after
-// it (fallIn, crossfaded from the idle pose by Crew.jsx).
+// lerp, root slerp), so nobody pops. Before the drop everyone idles; from the drop on, each dancer eases out of the idle
+// pose into its move and is fully in at its own time shortly after (fallIn, crossfaded from the idle pose by Crew.jsx;
+// the window is set by stageTiming.js so the whole fall-in is over before the page's crew can be seen).
 // On top of that, a roaming plan (roam.js, set with setRoam) moves / turns each dancer's copy to its current spot on
 // the floor and swaps in a travelling 8-count from travel.json (TravelLib) for its trips.
 // Per frame nothing is allocated: the schedule is two typed arrays and every scratch buffer is preallocated.
 import { Quaternion } from 'three';
 import { FALL_IN_BLEND, UNISON_UNITS, planSchedule } from './schedule.js';
+import { fallInWindow as pageFallInWindow } from './stageTiming.js';
 
 const BLEND = 0.2;
 // a trip swaps the whole pose (other feet, other stance), so it blends in / out a bit slower than the finale switches
@@ -25,8 +27,9 @@ export function mirrorMap(jointNames) {
 
 export class CrewMotion {
   // rigs: Rig per track (rigs[0] = finale, also the poser; the schedule only uses the finale); meta: crew.json;
-  // seed: the stage visit's seed (schedule + fall-in); n: dancers; unison: the payoff units.
-  constructor(rigs, meta, { seed = 1, n = 9, unison = UNISON_UNITS } = {}) {
+  // seed: the stage visit's seed (schedule + fall-in); n: dancers; unison: the payoff units; fallInWindow: the longest
+  // fall-in delay after the drop, s (default: the page's, stageTiming.js; the lab uses the same so a seed matches).
+  constructor(rigs, meta, { seed = 1, n = 9, unison = UNISON_UNITS, fallInWindow = pageFallInWindow() } = {}) {
     this.rigs = rigs;
     const h = rigs[0].header;
     this.anchor = h.grid_anchor;
@@ -42,11 +45,12 @@ export class CrewMotion {
     // past its own 8-count, so the 8-counts either side of a payoff are kept clear too
     this.noTrip = new Set([0]);
     for (const u of this.unison) for (let d = -1; d <= 1; d++) this.noTrip.add(u + d);
-    this.sched = planSchedule({ header: h, sections: meta.sections, n, seed, unison: [...this.unison] });
+    this.sched = planSchedule({ header: h, sections: meta.sections, n, seed, unison: [...this.unison], fallInWindow });
     const { M, R, W, start } = this.sched;
     this.M = M; this.R = R; this.W = W;
-    // fall-in crossfade window per dancer: [fa, fb] (never before the drop)
-    this.fa = Float64Array.from(start, (s) => Math.max(this.drop, s - FALL_IN_BLEND));
+    // fall-in crossfade per dancer: [fa, fb]. It starts at the drop for everyone, so from the drop on nobody stands
+    // still (a later start just means a longer, gentler ease in), and is over FALL_IN_BLEND after the dancer's start.
+    this.fa = Float64Array.from(start, () => this.drop);
     this.fb = Float64Array.from(start, (s) => s + FALL_IN_BLEND);
     this.a = new Float64Array(28); this.b = new Float64Array(28); this.tmp = new Float64Array(28);
     this.q = new Float64Array(28);
@@ -70,10 +74,12 @@ export class CrewMotion {
   // [track, mapped unit, mirror] (debug / panel)
   state(i, u) { return [0, this.src(i, u), !!this.mir(i, u)]; }
 
-  // when dancer i falls in after the drop, and how far (0 = still idle, 1 = dancing) at song time t
+  // when dancer i falls in after the drop, and how far (0 = idle, 1 = dancing) at song time t; > 0 from the drop on.
+  // `from`: when the fall-in begins (default the drop). DanceStage moves it earlier when the crew shows before the drop
+  // (an off-beat release), so the same staggered fall-in is already over when the crew first shows.
   startOf(i) { return this.sched.start[i]; }
-  fallIn(i, t) {
-    const a = this.fa[i], b = this.fb[i];
+  fallIn(i, t, from = this.drop) {
+    const a = this.fa[i] + (from - this.drop), b = this.fb[i] + (from - this.drop);
     return t <= a ? 0 : t >= b ? 1 : smooth((t - a) / (b - a));
   }
 

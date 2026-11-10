@@ -10,8 +10,6 @@
 import { useEffect } from 'react';
 import { Color, Mesh, Plane, PlaneGeometry, Scene, ShaderMaterial, Vector3 } from 'three';
 
-// the sim side's readouts (top left of the revealed region)
-export const SIM_STATS = ['MUJOCO MJX · PPO · 400M STEPS', 'JOINT ERR 2.4° · FALLS 0/100', '602 HIP-HOP MOVES (AIST++)'];
 export const PARK_PX = 6; // parked at the right edge: a sliver of checkerboard
 export const SWEEP = { delay: 0.9, dur: 1.6, peak: 0.35 }; // s after the crew fades in, s, revealed fraction
 const GRAB_PX = 22; // a press this close to the divider grabs it straight away
