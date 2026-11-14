@@ -66,6 +66,7 @@ export default function Header() {
     let dropped = false; // the song (not the intro loop) is playing
     let song = 'on'; // after the drop: 'on' | 'fading' (let go) | 'reviving' (held again)
     let fadeTimer = 0;
+    let catchUpTimer = 0;
     let stageTimer = 0;
     let settled = { at: 0, open: false }; // where the filter ends up once its current ramp finishes
     let anchor = { time: 0, offset: 0 }; // context time at which playback was at `offset`
@@ -150,6 +151,9 @@ export default function Header() {
       playIntro(0);
       applyOutput();
       setIsPlaying(true);
+      // Space may already be held (or let go after a full hold) while the song was still loading: catch up with it
+      // once the intro has started (playIntro schedules it a moment ahead), so that press still drops.
+      if (lastHold?.held) catchUpTimer = setTimeout(() => { if (!disposed && lastHold?.held) hold({ detail: lastHold }); }, 30);
     };
     const backToIntro = () => {
       clearTimeout(fadeTimer);
@@ -164,7 +168,9 @@ export default function Header() {
       level.gain.setValueAtTime(0, ctxNow());
       shapedRamp(level.gain, P.introGain, P.loopFadeIn);
     };
+    let lastHold = null; // the space bar's latest hold state, kept even before the audio can follow it
     const hold = (event) => {
+      lastHold = event.detail;
       if (!started) return;
       const { held, armed, dropped: released, holdSeconds, drainSeconds } = event.detail;
       if (armed) return; // bar full and still held: keep looping (opened up) until it's let go
@@ -278,6 +284,7 @@ export default function Header() {
     const shutdown = () => {
       disposed = true;
       clearTimeout(fadeTimer);
+      clearTimeout(catchUpTimer);
       output.gain.value = 0;
       if (player.state === 'started') player.stop();
       setIsPlaying(false);

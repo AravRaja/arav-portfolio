@@ -66,11 +66,19 @@ export default function SpaceButton({ setAnimation, ANIMATION }) {
     updatePhase('reset');
   }, [updatePhase]);
   useEffect(() => {
+    // Space keeps its own job only where it has one (typing, or pressing a focused button). A focused link has none:
+    // after clicking a header link, or coming back home through one, it keeps focus and must not swallow the deck's space.
+    const ownsSpace = (el) => !!el?.closest?.('input,textarea,select,[contenteditable="true"],button');
     const down = (e) => {
-      if (e.code !== 'Space' || e.repeat || e.target.closest?.('input,textarea,select,[contenteditable="true"],a,button')) return;
-      e.preventDefault(); handlePressDown();
+      if (e.code !== 'Space' || ownsSpace(e.target)) return;
+      e.preventDefault(); // also the auto-repeats, so a held space never scrolls the page
+      if (!e.repeat) handlePressDown();
     };
-    const up = (e) => { if (e.code === 'Space') { e.preventDefault(); handlePressUp(); } };
+    const up = (e) => {
+      if (e.code !== 'Space') return;
+      if (isPressed.current || !ownsSpace(e.target)) e.preventDefault(); // a focused button still gets its click
+      handlePressUp();
+    };
     const navigate = () => { blocked.current = true; stop(); };
     const hidden = () => { if (document.hidden) stop(); }; // only cancel when the tab goes away
     window.addEventListener('keydown', down);
