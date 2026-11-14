@@ -1,0 +1,592 @@
+{
+ "L4 desktop": {
+  "el": 18,
+  "meanH41": 197.4,
+  "minH41": 141,
+  "meanH68": 177.2,
+  "minH68": 130,
+  "worstOcc": 0.115,
+  "worstDancer": 24,
+  "worstT": "41.04",
+  "meanOcc": 0.019,
+  "over25": 0,
+  "occ41": 0.115,
+  "chk": {
+   "n": 25,
+   "minRootGap": 0.897,
+   "at": [
+    12,
+    23,
+    99.3
+   ],
+   "slotMin": 1.28,
+   "neighbourSameOutfit": [],
+   "neighbourSameMotion": [
+    [
+     9,
+     17
+    ]
+   ],
+   "allBlack": [
+    [
+     4,
+     16,
+     6.7,
+     false
+    ]
+   ],
+   "oddRightEvenLeft": true,
+   "yawRange": [
+    -34,
+    35
+   ]
+  },
+  "frame": [
+   true,
+   [
+    50,
+    82,
+    134,
+    133
+   ]
+  ],
+  "frame1280": [
+   true,
+   [
+    33,
+    73,
+    154,
+    153
+   ]
+  ]
+ },
+ "V1 desktop": {
+  "el": 15,
+  "meanH41": 247.4,
+  "minH41": 177,
+  "meanH68": 221.9,
+  "minH68": 166,
+  "worstOcc": 0.41,
+  "worstDancer": 10,
+  "worstT": "100.3",
+  "meanOcc": 0.139,
+  "over25": 2,
+  "occ41": 0.3708,
+  "chk": {
+   "n": 25,
+   "minRootGap": 0.792,
+   "at": [
+    1,
+    2,
+    33.5
+   ],
+   "slotMin": 1.21,
+   "neighbourSameOutfit": [],
+   "neighbourSameMotion": [
+    [
+     5,
+     13
+    ]
+   ],
+   "allBlack": [
+    [
+     4,
+     16,
+     7.32,
+     false
+    ]
+   ],
+   "oddRightEvenLeft": true,
+   "yawRange": [
+    -35,
+    19
+   ]
+  },
+  "frame": [
+   true,
+   [
+    131,
+    155,
+    187,
+    181
+   ]
+  ],
+  "frame1280": [
+   true,
+   [
+    49,
+    84,
+    131,
+    147
+   ]
+  ]
+ },
+ "V1 phone": {
+  "el": 34,
+  "meanH41": 117.4,
+  "minH41": 97,
+  "meanH68": 99,
+  "minH68": 87,
+  "worstOcc": 0.3,
+  "worstDancer": 3,
+  "worstT": "41.04",
+  "meanOcc": 0.1,
+  "over25": 1,
+  "occ41": 0.2996,
+  "chk": {
+   "n": 13,
+   "minRootGap": 0.776,
+   "at": [
+    8,
+    12,
+    41
+   ],
+   "slotMin": 1.16,
+   "neighbourSameOutfit": [],
+   "neighbourSameMotion": [],
+   "allBlack": [],
+   "oddRightEvenLeft": true,
+   "yawRange": [
+    -34,
+    14
+   ]
+  },
+  "frame": [
+   true,
+   [
+    96,
+    86,
+    49,
+    30
+   ]
+  ]
+ },
+ "V2 desktop": {
+  "el": 17,
+  "meanH41": 258.4,
+  "minH41": 208,
+  "meanH68": 229.6,
+  "minH68": 180,
+  "worstOcc": 0.339,
+  "worstDancer": 8,
+  "worstT": "25.3",
+  "meanOcc": 0.163,
+  "over25": 3,
+  "occ41": 0.2324,
+  "chk": {
+   "n": 25,
+   "minRootGap": 0.807,
+   "at": [
+    8,
+    12,
+    50.4
+   ],
+   "slotMin": 1.19,
+   "neighbourSameOutfit": [],
+   "neighbourSameMotion": [
+    [
+     3,
+     11
+    ],
+    [
+     3,
+     19
+    ]
+   ],
+   "allBlack": [
+    [
+     4,
+     16,
+     3.39,
+     false
+    ]
+   ],
+   "oddRightEvenLeft": true,
+   "yawRange": [
+    -35,
+    30
+   ]
+  },
+  "frame": [
+   true,
+   [
+    118,
+    137,
+    184,
+    202
+   ]
+  ],
+  "frame1280": [
+   true,
+   [
+    40,
+    71,
+    123,
+    141
+   ]
+  ]
+ },
+ "V2 phone": {
+  "el": 40,
+  "meanH41": 118.5,
+  "minH41": 103,
+  "meanH68": 96.9,
+  "minH68": 88,
+  "worstOcc": 0.185,
+  "worstDancer": 1,
+  "worstT": "55.2",
+  "meanOcc": 0.082,
+  "over25": 0,
+  "occ41": 0.146,
+  "chk": {
+   "n": 13,
+   "minRootGap": 0.782,
+   "at": [
+    1,
+    8,
+    112.5
+   ],
+   "slotMin": 1.19,
+   "neighbourSameOutfit": [],
+   "neighbourSameMotion": [
+    [
+     1,
+     9
+    ],
+    [
+     2,
+     10
+    ]
+   ],
+   "allBlack": [],
+   "oddRightEvenLeft": true,
+   "yawRange": [
+    -35,
+    28
+   ]
+  },
+  "frame": [
+   true,
+   [
+    107,
+    90,
+    43,
+    49
+   ]
+  ]
+ },
+ "V3 desktop": {
+  "el": 16,
+  "meanH41": 274.6,
+  "minH41": 217,
+  "meanH68": 243.2,
+  "minH68": 191,
+  "worstOcc": 0.483,
+  "worstDancer": 11,
+  "worstT": "41.04",
+  "meanOcc": 0.251,
+  "over25": 18,
+  "occ41": 0.4827,
+  "chk": {
+   "n": 25,
+   "minRootGap": 0.915,
+   "at": [
+    7,
+    9,
+    100.7
+   ],
+   "slotMin": 1.29,
+   "neighbourSameOutfit": [],
+   "neighbourSameMotion": [],
+   "allBlack": [
+    [
+     4,
+     16,
+     3.78,
+     false
+    ]
+   ],
+   "oddRightEvenLeft": true,
+   "yawRange": [
+    -31,
+    22
+   ]
+  },
+  "frame": [
+   true,
+   [
+    56,
+    73,
+    208,
+    242
+   ]
+  ],
+  "frame1280": [
+   true,
+   [
+    40,
+    72,
+    201,
+    228
+   ]
+  ]
+ },
+ "V3 phone": {
+  "el": 34,
+  "meanH41": 101.5,
+  "minH41": 89,
+  "meanH68": 86.3,
+  "minH68": 78,
+  "worstOcc": 0.198,
+  "worstDancer": 7,
+  "worstT": "41.04",
+  "meanOcc": 0.099,
+  "over25": 0,
+  "occ41": 0.1982,
+  "chk": {
+   "n": 13,
+   "minRootGap": 0.784,
+   "at": [
+    0,
+    6,
+    104
+   ],
+   "slotMin": 1.19,
+   "neighbourSameOutfit": [],
+   "neighbourSameMotion": [],
+   "allBlack": [],
+   "oddRightEvenLeft": true,
+   "yawRange": [
+    -24,
+    26
+   ]
+  },
+  "frame": [
+   true,
+   [
+    144,
+    142,
+    41,
+    41
+   ]
+  ]
+ },
+ "V4 desktop": {
+  "el": 20,
+  "meanH41": 224.9,
+  "minH41": 172,
+  "meanH68": 201.9,
+  "minH68": 163,
+  "worstOcc": 0.536,
+  "worstDancer": 17,
+  "worstT": "10.6",
+  "meanOcc": 0.22,
+  "over25": 12,
+  "occ41": 0.3927,
+  "chk": {
+   "n": 25,
+   "minRootGap": 0.772,
+   "at": [
+    11,
+    15,
+    41
+   ],
+   "slotMin": 1.13,
+   "neighbourSameOutfit": [],
+   "neighbourSameMotion": [],
+   "allBlack": [
+    [
+     4,
+     16,
+     6.71,
+     false
+    ]
+   ],
+   "oddRightEvenLeft": true,
+   "yawRange": [
+    -35,
+    35
+   ]
+  },
+  "frame": [
+   true,
+   [
+    111,
+    150,
+    233,
+    172
+   ]
+  ],
+  "frame1280": [
+   true,
+   [
+    44,
+    89,
+    186,
+    141
+   ]
+  ]
+ },
+ "V4 phone": {
+  "el": 40,
+  "meanH41": 101.7,
+  "minH41": 85,
+  "meanH68": 84.7,
+  "minH68": 74,
+  "worstOcc": 0.284,
+  "worstDancer": 5,
+  "worstT": "41.04",
+  "meanOcc": 0.13,
+  "over25": 1,
+  "occ41": 0.2842,
+  "chk": {
+   "n": 13,
+   "minRootGap": 0.774,
+   "at": [
+    3,
+    4,
+    41
+   ],
+   "slotMin": 1.1,
+   "neighbourSameOutfit": [],
+   "neighbourSameMotion": [
+    [
+     3,
+     11
+    ],
+    [
+     4,
+     12
+    ]
+   ],
+   "allBlack": [],
+   "oddRightEvenLeft": true,
+   "yawRange": [
+    -35,
+    35
+   ]
+  },
+  "frame": [
+   true,
+   [
+    164,
+    144,
+    40,
+    32
+   ]
+  ]
+ },
+ "V5 desktop": {
+  "el": 19,
+  "meanH41": 222.4,
+  "minH41": 174,
+  "meanH68": 198,
+  "minH68": 157,
+  "worstOcc": 0.578,
+  "worstDancer": 15,
+  "worstT": "100.3",
+  "meanOcc": 0.255,
+  "over25": 13,
+  "occ41": 0.5325,
+  "chk": {
+   "n": 25,
+   "minRootGap": 0.783,
+   "at": [
+    1,
+    11,
+    41
+   ],
+   "slotMin": 1.19,
+   "neighbourSameOutfit": [],
+   "neighbourSameMotion": [
+    [
+     5,
+     21
+    ],
+    [
+     6,
+     22
+    ],
+    [
+     11,
+     19
+    ],
+    [
+     12,
+     20
+    ]
+   ],
+   "allBlack": [
+    [
+     4,
+     16,
+     3.64,
+     false
+    ]
+   ],
+   "oddRightEvenLeft": true,
+   "yawRange": [
+    -18,
+    19
+   ]
+  },
+  "frame": [
+   true,
+   [
+    176,
+    195,
+    193,
+    183
+   ]
+  ],
+  "frame1280": [
+   true,
+   [
+    78,
+    110,
+    143,
+    133
+   ]
+  ]
+ },
+ "V5 phone": {
+  "el": 40,
+  "meanH41": 98.3,
+  "minH41": 83,
+  "meanH68": 80.6,
+  "minH68": 71,
+  "worstOcc": 0.225,
+  "worstDancer": 8,
+  "worstT": "10.6",
+  "meanOcc": 0.11,
+  "over25": 0,
+  "occ41": 0.1838,
+  "chk": {
+   "n": 13,
+   "minRootGap": 0.781,
+   "at": [
+    1,
+    5,
+    24.9
+   ],
+   "slotMin": 1.12,
+   "neighbourSameOutfit": [],
+   "neighbourSameMotion": [],
+   "allBlack": [],
+   "oddRightEvenLeft": true,
+   "yawRange": [
+    -23,
+    13
+   ]
+  },
+  "frame": [
+   true,
+   [
+    135,
+    125,
+    27,
+    30
+   ]
+  ]
+ }
+}

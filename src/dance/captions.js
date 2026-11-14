@@ -9,7 +9,9 @@ export const CAPTIONS = [
   { text: 'first just the song, then real dancers' },
   // with the sim reveal wipe: drag across and the crew turns into the MuJoCo bodies they were trained as
   { text: 'RL-trained in MuJoCo · I think dancers are safe for now...' },
+  // the 25 mostly move as one (the unison choreography), and they are one policy replayed: the hivemind
+  { text: 'The Hivemind - trained in MuJoCo' },
 ];
 
 // the home page's caption (the lab can still cycle through all of them)
-export const DEFAULT_CAPTION = 4;
+export const DEFAULT_CAPTION = 5;

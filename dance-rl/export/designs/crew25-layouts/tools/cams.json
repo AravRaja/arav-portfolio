@@ -1,0 +1,57 @@
+{
+ "V1": {
+  "name": "Tight club",
+  "fov": 30,
+  "elevation": [
+   15,
+   [
+    26,
+    34
+   ]
+  ]
+ },
+ "V2": {
+  "name": "Staggered rows",
+  "fov": 30,
+  "elevation": [
+   17,
+   [
+    26,
+    40
+   ]
+  ]
+ },
+ "V3": {
+  "name": "Wedge",
+  "fov": 30,
+  "elevation": [
+   16,
+   [
+    26,
+    34
+   ]
+  ]
+ },
+ "V4": {
+  "name": "Arc",
+  "fov": 30,
+  "elevation": [
+   20,
+   [
+    28,
+    40
+   ]
+  ]
+ },
+ "V5": {
+  "name": "Two flanks",
+  "fov": 30,
+  "elevation": [
+   19,
+   [
+    26,
+    40
+   ]
+  ]
+ }
+}

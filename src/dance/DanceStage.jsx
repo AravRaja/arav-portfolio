@@ -30,7 +30,7 @@ import './DanceStage.css';
 
 export { prepareCrew, refreshStagePlan };
 
-const CAPTION = CAPTIONS[DEFAULT_CAPTION]; // RL-trained in MuJoCo · I think dancers are safe for now...
+const CAPTION = CAPTIONS[DEFAULT_CAPTION]; // The Hivemind - trained in MuJoCo
 const FADE_OUT_MS = 380;
 const HI_DPI = typeof window !== 'undefined' && window.devicePixelRatio >= 1.5;
 // phones: cap the pixel ratio at 1.5 (the crew is small on screen, and phones are fill-rate bound); desktop: 2

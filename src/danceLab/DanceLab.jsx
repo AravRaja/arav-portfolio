@@ -2,9 +2,9 @@
 // Not part of the site's page flow: main.jsx only mounts it in dev (or with VITE_DANCE_LAB=1).
 //
 // Keys: 1-9, 0 / A-D design (5-9, 0 = D1-D6 from designs/index.js) · C caption · Space play/pause (from the drop) · P play with 4 s of
-// idle before the drop · ←/→ ±1 8-count · K freeze on the 41.04 s clap · H hide site chrome · L crew layout (L1-L4, off)
+// idle before the drop · ←/→ ±1 8-count · K freeze on the 41.04 s clap · H hide site chrome · L crew layout (L1-L4, V1-V5, off) · V cycle V1-V5
 // URL: ?design=A..D, D1..D6&caption=0..3&t=41.04 (freeze at a song time) &chrome=0 &view=verify
-//      &crew=L1..L4 (9-dancer crew, crew/; &seed=N re-rolls the looks; &lineup=front|back: the looks in a row, bind pose;
+//      &crew=L1..L4, V1..V5 (V*: 25-dancer layout options, 13 on a phone; L1-L3 hold 9 slots, so use &n=9 with them) (9-dancer crew, crew/; &seed=N re-rolls the looks; &lineup=front|back: the looks in a row, bind pose;
 //      &n=N crew size (default the page's CREW_SIZE, 25; dancers 0-8 are the 9-dancer cast) &nphone=N dancers shown on a
 //      portrait screen (default CREW_SIZE_PHONE; &nphone=0 shows all); &choreo=crew|chaos (default crew: the live
 //      choreography; chaos: the seeded per-visit scheduler);
@@ -137,10 +137,12 @@ export default function DanceLab() {
   const [chrome, setChrome] = useState(params.get('chrome') !== '0');
   const [panel] = useState(params.get('panel') !== '0');
   const [playing, setPlaying] = useState(false);
+  const crewAsked = Math.max(1, Math.min(25, Number(params.get('n') || CREW_SIZE)));
   const [crew, setCrew] = useState(() => (LAYOUT_KEYS.includes(params.get('crew')) ? params.get('crew') : null));
+  // L1-L3 only have 9 slots: the crew is cut to what the layout holds (so L / the buttons can step through every layout)
+  const crewN = crew ? Math.min(crewAsked, LAYOUTS[crew].slots(false, crewAsked).length) : crewAsked;
   const seed = Number(params.get('seed') || 7);
   const [roam, setRoam] = useState(params.get('roam') === '1');
-  const crewN = Math.max(1, Math.min(25, Number(params.get('n') || CREW_SIZE)));
   const nPhone = params.get('nphone') !== null ? Number(params.get('nphone')) || null : CREW_SIZE_PHONE;
   const [choreo, setChoreo] = useState(() => (['crew', 'chaos'].includes(params.get('choreo')) ? params.get('choreo') : CHOREO_MODE));
   // the stage visit's seed (fall-in, move schedule, trips): random per load like the page; &roamseed=N pins it
@@ -231,6 +233,7 @@ export default function DanceLab() {
       else if ('1234567890'.includes(k) && KEYS['1234567890'.indexOf(k)]) setDesign(KEYS['1234567890'.indexOf(k)]);
       else if (k === 'C') setCaption((c) => (c + 1) % CAPTIONS.length);
       else if (k === 'L') setCrew((c) => [...LAYOUT_KEYS, null][(LAYOUT_KEYS.indexOf(c) + 1 + LAYOUT_KEYS.length + 1) % (LAYOUT_KEYS.length + 1)]);
+      else if (k === 'V') setCrew((c) => { const V = LAYOUT_KEYS.filter((l) => l[0] === 'V'); return V[(V.indexOf(c) + 1) % V.length]; }); // the 25-crew layout options
       else if (k === 'H') setChrome((c) => !c);
       else if (k === 'P') play(8.37 - 4);
       else if (k === 'K') { audio.pause(); setPlaying(false); clock.mode = 'frozen'; clock.frozenT = CLAP_T; clock.frozenWall = null; }
@@ -340,7 +343,7 @@ export default function DanceLab() {
             <span ref={statsRef} />
           </div>
           <div className="lab-unit" ref={unitRef} />
-          {rig && <div className="lab-unit">FK vs MuJoCo: {rig.verifyErr.toExponential(1)} m · keys 1-9 0 C space P ←→ K H L</div>}
+          {rig && <div className="lab-unit">FK vs MuJoCo: {rig.verifyErr.toExponential(1)} m · keys 1-9 0 C space P ←→ K H L V</div>}
         </div>
       )}
     </div>

@@ -1,5 +1,5 @@
 // The home page's crew, prepared once and cached for every visit to the music stage: the poser rig, the sync
-// structure and the CREW_SIZE bodies (L4 cast, seed 7; a portrait phone shows the first CREW_SIZE_PHONE of them). The body geometry is built in a worker (bodyWorker.js) while the data
+// structure and the CREW_SIZE bodies (seed 7 cast, V1 layout; a portrait phone shows the first CREW_SIZE_PHONE of them). The body geometry is built in a worker (bodyWorker.js) while the data
 // downloads; the main thread then only skins + retargets each body, one per idle callback (a few ms each), and only
 // while `canBuild()` allows it, so that work never lands on the drop itself or on the deck's zoom into the stage.
 // Without workers it falls back to building everything on the main thread, half a body per idle callback. Last, the
@@ -24,7 +24,8 @@ import { freshSeed } from './schedule.js';
 import { MIN_GAP } from './roam.js';
 
 export const CREW_SEED = 7;
-export const CREW_LAYOUT = 'L4';
+// V1 "Tight club" (layouts.js: 25 desktop slots, 13 phone slots); L4 is the 9-dancer club it grew from
+export const CREW_LAYOUT = 'V1';
 // 'crew': the live choreography (offsets inside each section, mirror pairs, unison on the drop + every section start,
 // deterministic) | 'chaos': the seeded per-visit scheduler (staggered fall-in, whole-song move pool, schedule.js)
 export const CHOREO_MODE = 'crew';
