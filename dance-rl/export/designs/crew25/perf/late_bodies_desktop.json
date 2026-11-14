@@ -1,0 +1,74 @@
+[
+ {
+  "profile": "desk2x",
+  "run": 0,
+  "uncapped": false,
+  "throttle": 1,
+  "stage": {
+   "frames": 300,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.7,
+   "p99": 16.8,
+   "max": 16.8,
+   "over20": 0,
+   "drawCalls": [
+    27
+   ],
+   "tris": [
+    195525
+   ]
+  },
+  "dropWindow": {
+   "frames": 264,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.8,
+   "p99": 16.8,
+   "max": 16.8,
+   "over20": 0,
+   "drawCalls": [
+    22,
+    21,
+    20,
+    18,
+    16,
+    14
+   ],
+   "tris": [
+    5866,
+    5794,
+    5722,
+    5718
+   ]
+  },
+  "holdWindow": {
+   "frames": 199,
+   "fps": 59.7,
+   "p50": 16.7,
+   "p95": 16.8,
+   "p99": 16.8,
+   "max": 33.3,
+   "over20": 1,
+   "drawCalls": [
+    22
+   ],
+   "tris": [
+    5866
+   ]
+  },
+  "holdMs": 3339,
+  "releaseToVisibleMs": 4325,
+  "bodiesBuiltAfterHoldMs": 7025,
+  "kitReadyAfterHoldMs": 7300,
+  "mountAfterReleaseMs": 3961,
+  "firstFrameAfterReleaseMs": 4111,
+  "longTasksHold": [],
+  "longTasksDrop": [],
+  "longTasksStage": [],
+  "visCalls": "0,0,0,0,0,0,0,0,0,0,0,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27",
+  "heapBeforeHoldMB": 6.41,
+  "heapOnStageMB": 12.28,
+  "errors": []
+ }
+]

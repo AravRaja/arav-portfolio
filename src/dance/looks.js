@@ -128,7 +128,14 @@ const LEAD = {
   },
 };
 
-export function generateCrew(seed = 7, n = 9, { women = Math.round((n * 5) / 9) } = {}) {
+// The crew of n: the 9-dancer cast (crew9, unchanged: dancers 0-8 are the same at any n), then, for n > 9, more
+// dancers dealt by extendCrew. Fewer than 9: the first n of the cast.
+export function generateCrew(seed = 7, n = 9) {
+  const base = crew9(seed);
+  return n <= 9 ? base.slice(0, n) : base.concat(extendCrew(seed, base, n));
+}
+
+function crew9(seed, n = 9, { women = Math.round((n * 5) / 9) } = {}) {
   const r = mulberry32(seed);
   const bodies = shuffle(r, [...Array(n)].map((_, i) => (i < women ? 'f' : 'm')));
   // templates for the others: the two feminine ones go to the first two women, everyone else is dealt
@@ -210,4 +217,100 @@ export function generateCrew(seed = 7, n = 9, { women = Math.round((n * 5) / 9) 
     l.outfit = o;
   });
   return looks;
+}
+
+// ---------- dancers 9 .. n-1 (the 25-dancer crew: 13 women / 12 men overall)
+// Same palette rules as the cast: garments only from PALETTE, at most one loud colour per look, no new yellow garments
+// (yellow stays the accent colour; the cast already has its one yellow tee and the yellow hoodie), white tops only on
+// tees / tracksuits / tee dresses so the lead's white hoodie stays the lead's. Bodies alternate in seeded pairs (f, m
+// in either order), so any prefix of the crew (a phone's 13) stays balanced. Templates come from a deck per body that
+// mirrors the cast's mix (women: crop hoodies + tee dresses + the generic ones; men: hoodies, tracksuits, tees) with
+// exactly one more all-black look, on a man: one all-black look per body, so the cast's re-dress rule (a second
+// all-black on the same body becomes a yellow hoodie) never has to fire, and layouts.js keeps the two apart.
+// Top colours: an even deck (red / blue-grey / off-white / white) dealt most-constrained template first, preferring a
+// template:colour pair nobody has yet; the few unavoidable repeats are kept away from each other by the layouts
+// (layouts.js checks: no two neighbours with the same template + top). Hair: per-body decks, reshuffled when used up,
+// never the same style as the dancer before; headwear only where it fits.
+function extendCrew(seed, base, n) {
+  const r = mulberry32((seed * 2654435761 + 0x2525) >>> 0);
+  const m = n - base.length;
+  const womenTotal = Math.round((n * 13) / 25);
+  let fLeft = Math.max(0, womenTotal - base.filter((l) => l.body === 'f').length);
+  let mLeft = Math.max(0, m - fLeft);
+  fLeft = m - mLeft;
+  const bodies = [];
+  while (bodies.length < m) {
+    const pair = r() < 0.5 ? ['f', 'm'] : ['m', 'f'];
+    for (const b of pair) {
+      if (bodies.length >= m) break;
+      const want = b === 'f' ? fLeft > 0 : mLeft > 0;
+      const bb = want ? b : b === 'f' ? 'm' : 'f';
+      bodies.push(bb);
+      if (bb === 'f') fLeft--; else mLeft--;
+    }
+  }
+  const deckF = shuffle(r, ['cropHoodie', 'cropHoodie', 'teeDress', 'teeDress', 'hoodie', 'tracksuit', 'tee', 'teeDress']);
+  const deckM = shuffle(r, ['hoodie', 'hoodie', 'tracksuit', 'tracksuit', 'tee', 'tee', 'hoodie', 'tee']);
+  // the one extra all-black look: a man about a third of the way in
+  const blackAt = bodies.findIndex((b, k) => b === 'm' && k >= Math.floor(m / 3));
+  let kf = 0, km = 0;
+  const templates = bodies.map((b, k) => (k === blackAt ? 'allblack' : b === 'f' ? deckF[kf++ % deckF.length] : deckM[km++ % deckM.length]));
+  const OK = {
+    hoodie: [P.offwhite, P.bluegrey, P.red], tracksuit: [P.red, P.bluegrey, P.white], tee: [P.white, P.offwhite, P.red, P.bluegrey],
+    cropHoodie: [P.offwhite, P.bluegrey, P.red], teeDress: [P.white, P.offwhite, P.red, P.bluegrey],
+  };
+  const used = new Map(); // template:colour -> count (cast included)
+  for (const l of base) used.set(`${l.template}:${l.outfit.top}`, (used.get(`${l.template}:${l.outfit.top}`) || 0) + 1);
+  const deck = [];
+  const cols = [P.red, P.bluegrey, P.offwhite, P.white];
+  while (deck.length < m) deck.push(...shuffle(r, cols));
+  const rank = { tracksuit: 0, cropHoodie: 1, hoodie: 1, teeDress: 2, tee: 2 };
+  const tops = {};
+  templates.map((t, k) => [t, k]).filter(([t]) => t !== 'allblack').sort((a, b) => rank[a[0]] - rank[b[0]] || a[1] - b[1])
+    .forEach(([t, k]) => {
+      const ok = OK[t];
+      let best = -1, bs = Infinity;
+      deck.forEach((c, j) => {
+        if (!ok.includes(c)) return;
+        const s2 = 10 * (used.get(`${t}:${c}`) || 0) + j * 0.01;
+        if (s2 < bs) { bs = s2; best = j; }
+      });
+      const c = best >= 0 ? deck.splice(best, 1)[0] : ok[0];
+      tops[k] = c;
+      used.set(`${t}:${c}`, (used.get(`${t}:${c}`) || 0) + 1);
+    });
+  const skins = [];
+  while (skins.length < m) skins.push(...shuffle(r, SKINS));
+  const hairDeck = { f: [], m: [] };
+  const accDeck = [];
+  const out = [];
+  let prevStyle = base[base.length - 1].hairStyle;
+  for (let k = 0; k < m; k++) {
+    const i = base.length + k, body = bodies[k], template = templates[k];
+    const o = TEMPLATES[template](r, tops[k] ?? null);
+    if (body === 'f' && template === 'tracksuit') o.baggy = +(0.94 + 0.04 * r()).toFixed(3);
+    o.body = body;
+    o.skin = skins[k];
+    o.hair = pick(r, HAIRS);
+    const d = hairDeck[body];
+    if (!d.length) d.push(...shuffle(r, HAIR_STYLES[body]));
+    let hk = d.findIndex((h) => h !== prevStyle);
+    if (hk < 0) hk = 0;
+    o.hairStyle = d.splice(hk, 1)[0];
+    if (['ponytail', 'puffs', 'braids'].includes(o.hairStyle)) o.hairTie = pick(r, [P.yellow, P.white, P.red].filter((c) => !(c === P.red && o.top === P.red)));
+    if (o.hairStyle === 'crop') delete o.hairStyle;
+    const style = o.hairStyle || 'crop';
+    prevStyle = style;
+    if (!accDeck.length) accDeck.push(...shuffle(r, ['bucket', 'cap', 'phones', 'phones', null, null, null, null]));
+    let a = null;
+    const ak = accDeck.findIndex((x) => x === null || FITS[x].includes(style));
+    if (ak >= 0) a = accDeck.splice(ak, 1)[0];
+    if (a === 'bucket') { o.hat = 'bucket'; o.hatCol = pick(r, [P.offwhite, P.black, P.white].filter((c) => c !== o.top)); }
+    if (a === 'cap') { o.hat = 'cap'; o.hatCol = pick(r, [P.black, P.red, P.white, P.yellow].filter((c) => c !== o.top && !(loud(c) && loud(o.top)))); }
+    if (a === 'phones') { o.headphones = true; o.phonesCol = pick(r, [P.yellow, P.white]); o.bandCol = '#14183a'; }
+    for (const key of Object.keys(o)) if (o[key] === undefined) delete o[key];
+    const height = body === 'f' ? 0.915 + 0.055 * r() : 0.97 + 0.07 * r();
+    out.push({ id: i, body, template, hairStyle: style, height: +height.toFixed(3), outfit: o });
+  }
+  return out;
 }

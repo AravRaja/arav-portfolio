@@ -1,11 +1,14 @@
 // The home page's crew, prepared once and cached for every visit to the music stage: the poser rig, the sync
-// structure and the 9 bodies (L4 cast, seed 7). The body geometry is built in a worker (bodyWorker.js) while the data
+// structure and the CREW_SIZE bodies (L4 cast, seed 7; a portrait phone shows the first CREW_SIZE_PHONE of them). The body geometry is built in a worker (bodyWorker.js) while the data
 // downloads; the main thread then only skins + retargets each body, one per idle callback (a few ms each), and only
 // while `canBuild()` allows it, so that work never lands on the drop itself or on the deck's zoom into the stage.
 // Without workers it falls back to building everything on the main thread, half a body per idle callback. Last, the
 // roaming trips (roam.js) are planned for both orientations, one per idle slot, so mounting on the drop plans nothing.
-// The sim crew (simBody.js: the same 9 dancers as MuJoCo capsule bodies, for the reveal wipe) is built in the same
+// The sim crew (simBody.js: the same dancers as MuJoCo capsule bodies, for the reveal wipe) is built in the same
 // worker and wrapped into its skinned mesh in one more idle slot.
+// Choreography (CHOREO_MODE): 'crew' is the live site's (motion.js / schedule.js planCrewSchedule: section offsets,
+// mirror pairs, unison on the sync units, no roaming), the same every visit: its one stage plan is built with the kit
+// and reused. 'chaos' (the seeded scheduler) is still here and selectable in the lab (&choreo=chaos, &roam=1):
 // Every stage visit is different: a "stage plan" (a fresh random seed -> the fall-in, the move schedule (schedule.js)
 // and the roaming trips for both orientations) is built in idle time, the first one with the kit; DanceStage takes it
 // when it mounts its canvas, and once that visit has ended a new one is built in idle time for the next visit (each
@@ -22,15 +25,27 @@ import { MIN_GAP } from './roam.js';
 
 export const CREW_SEED = 7;
 export const CREW_LAYOUT = 'L4';
+// 'crew': the live choreography (offsets inside each section, mirror pairs, unison on the drop + every section start,
+// deterministic) | 'chaos': the seeded per-visit scheduler (staggered fall-in, whole-song move pool, schedule.js)
+export const CHOREO_MODE = 'crew';
+// roaming trips over the stage (roam.js; planned per visit, chaos only). Off on the page; the lab has &roam=1.
+export const ROAM = false;
+// dancers on the stage (looks.js keeps dancers 0-8 as the 9-dancer cast; layouts.js L4 has slots for 9, 13 and 25)
+export const CREW_SIZE = 25;
+// dancers shown on a portrait screen (the phone layout); the rest are built but not mounted. See crew25/README.md.
+export const CREW_SIZE_PHONE = 13;
 
+// resolves with the idle deadline (or null: Safari, no idle callbacks) once `canBuild` allows work
 const idle = (canBuild) => new Promise((resolve) => {
   const go = () => {
     if (!canBuild()) { setTimeout(go, 120); return; }
-    if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(() => resolve(), { timeout: 400 });
-    else setTimeout(resolve, 16); // Safari: no idle callbacks
+    if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback((d) => resolve(d), { timeout: 400 });
+    else setTimeout(() => resolve(null), 16); // Safari: no idle callbacks
   };
   go();
 });
+// whether an idle period still has `ms` left (a body's skinning + retarget: ~1-3 ms on an M1, several x that throttled)
+const roomFor = (d, ms) => !!d && !d.didTimeout && d.timeRemaining() > ms;
 
 // One worker builds the 9 toon bodies (posted right away) and then the sim crew (simBody.js: the 9 capsule bodies,
 // posted once finale.json has the model's geoms). `bodies` resolves with the toon bodies' data, `sim(...)` with the
@@ -84,7 +99,7 @@ export function prepareCrew(canBuild) {
   if (canBuild) gate = canBuild;
   if (!pending) {
     pending = (async () => {
-      const looks = generateCrew(CREW_SEED);
+      const looks = generateCrew(CREW_SEED, CREW_SIZE);
       const worker = startBodyWorker(looks);
       const bodies = worker.bodies.catch((e) => {
         console.warn('[dance] building the crew on the main thread:', e.message || e);
@@ -98,15 +113,22 @@ export function prepareCrew(canBuild) {
       });
       const rig = new Rig(data);
       const tracks = await loadCrewTracks(rig, meta);
-      const kit = createCrewKit(rig, CREW_SEED);
+      const kit = createCrewKit(rig, CREW_SEED, CREW_SIZE);
       const built = await bodies;
-      for (;;) {
-        await idle(() => gate());
-        if (built) {
-          const i = kit.dancers.length;
-          kit.dancers.push(rigCrewDancer(rig, kit.looks[i], kit.materials, bodyFromData(built[i])));
-          if (kit.dancers.length === kit.looks.length) break;
-        } else if (buildNextDancer(kit)) break;
+      try { performance.mark('dance-stage:bodies-built'); } catch { /* unsupported */ }
+      // one body per idle period, more while the period has room for twice the last one's time (slow devices: one)
+      let last = 4;
+      for (let done = false; !done;) {
+        const d = await idle(() => gate());
+        do {
+          const t0 = performance.now();
+          if (built) {
+            const i = kit.dancers.length;
+            kit.dancers.push(rigCrewDancer(rig, kit.looks[i], kit.materials, bodyFromData(built[i])));
+            done = kit.dancers.length === kit.looks.length;
+          } else done = buildNextDancer(kit);
+          last = performance.now() - t0;
+        } while (!done && built && roomFor(d, 2 * last + 1) && gate());
       }
       {
         const sim = await simBuilt;
@@ -136,16 +158,20 @@ let visiting = false; // a visit is on: never plan while the crew is dancing
 // own idle slot, and none runs while a visit is on (a visit that starts before its plan is ready replays the last one).
 const PLAN_TRIES = 4;
 async function buildStagePlan(kit, tracks) {
+  if (CHOREO_MODE === 'crew' && !ROAM) { // deterministic: one plan, reused by every visit
+    const motion = new CrewMotion(tracks.rigs, tracks.meta, { mode: 'crew', n: kit.dancers.length });
+    return { seed: 0, motion, gap: null, tries: 1, used: false, fixed: true };
+  }
   let best = null;
   for (let a = 0; a < PLAN_TRIES; a++) {
     const seed = freshSeed();
-    const motion = new CrewMotion(tracks.rigs, tracks.meta, { seed, n: kit.dancers.length });
+    const motion = new CrewMotion(tracks.rigs, tracks.meta, { seed, n: kit.dancers.length, mode: CHOREO_MODE });
     let gap = Infinity;
-    if (tracks.travel) {
+    if (tracks.travel && ROAM) {
       const here = window.innerHeight > window.innerWidth;
       for (const portrait of [here, !here]) {
         await idle(() => gate() && !visiting);
-        try { gap = Math.min(gap, roamPlanFor(motion, tracks.travel, CREW_LAYOUT, portrait, kit.dancers, seed).info.minGap); } catch (e) { console.warn('[dance] roaming plan failed:', e); }
+        try { gap = Math.min(gap, roamPlanFor(motion, tracks.travel, CREW_LAYOUT, portrait, portrait ? kit.dancers.slice(0, CREW_SIZE_PHONE) : kit.dancers, seed).info.minGap); } catch (e) { console.warn('[dance] roaming plan failed:', e); }
         if (gap < MIN_GAP) break;
       }
     }
@@ -170,7 +196,7 @@ export function endStageVisit() {
 // Build the next visit's plan in idle time, once the current one has been used (DanceStage after a visit; the
 // prefetch on every hold of space).
 export function refreshStagePlan() {
-  if (!ready || !stage || !stage.used || visiting || refreshing) return refreshing;
+  if (!ready || !stage || !stage.used || stage.fixed || visiting || refreshing) return refreshing;
   refreshing = buildStagePlan(ready.kit, ready.tracks)
     .then((s) => { stage = s; return s; })
     .catch((e) => { console.warn('[dance] stage plan failed:', e); return null; })

@@ -1,13 +1,15 @@
-// The 9-dancer crew on the home page's music stage (the blue page after the hold-release drop).
+// The dance crew (CREW_SIZE dancers, CREW_SIZE_PHONE on a portrait screen) on the home page's music stage (the blue page after the hold-release drop).
 // Welcome mounts this only while the stage is up (plus its fade-out). The WebGL canvas is created once the deck has
 // paused (the deck stops drawing when the zoom into the stage finishes), so only one scene ever renders at a time:
 //   active -> canvas mounts, shaders compile off the main thread (compileAsync), then the crew fades / scales in;
 //   inactive (the song fades, the user leaves the stage, a page change) -> the crew freezes on its last frame and fades
 //   out while the deck takes over, then the canvas unmounts and its GPU resources and WebGL context are released.
 // Time source: holdSync.songTime(), the Tone.js player's position in now-get-busy.mp3 as heard (Header.jsx). The crew
-// dances from the drop hit (8.37 s) or from its first frame on screen, whichever is first (the clock below), each dancer
-// on its own moves (schedule.js), all fully in before the crew can first be seen (stageTiming.js), in sync with the
-// song. Every visit (each time the canvas mounts) gets a fresh seed.
+// dances from the drop hit (8.37 s) or from its first frame on screen, whichever is first (the clock below), in sync
+// with the song. Choreography (stageKit.js CHOREO_MODE): 'crew' (default) is the live site's, the same every visit:
+// section offsets + mirror pairs, everyone in unison on the drop's first 8-count and every section start (and, when the
+// crew shows before the drop, from its first frame up to that first downbeat). 'chaos': each dancer on its own moves
+// (schedule.js), all fully in before the crew can first be seen (stageTiming.js), a fresh seed every visit.
 // Sim reveal (simReveal.js): a divider parked at the right edge; dragging it left (the handle, or anywhere on the stage)
 // shows the same crew as the MuJoCo capsule bodies on the simulator's floor. Once per stage entry, 0.9 s after the
 // crew fades in, it sweeps out to 35% and back by itself so the gesture is discoverable.
@@ -19,7 +21,9 @@ import CaptionText from './CaptionText.jsx';
 import RevealOverlay from './RevealOverlay.jsx';
 import { armSweep, createReveal, primeClipping, useRevealDrag } from './simReveal.js';
 import { WebGLRecovery } from './useWebGLRecovery.js';
-import { CREW_LAYOUT, CREW_SEED, crewReady, endStageVisit, prepareCrew, refreshStagePlan, takeStagePlan } from './stageKit.js';
+import {
+  CHOREO_MODE, CREW_LAYOUT, CREW_SEED, CREW_SIZE_PHONE, ROAM, crewReady, endStageVisit, prepareCrew, refreshStagePlan, takeStagePlan,
+} from './stageKit.js';
 import { crewVisibleAfterDrop, preDropSongTime } from './stageTiming.js';
 import { holdSync } from '../audio/holdSync.js';
 import './DanceStage.css';
@@ -69,7 +73,8 @@ function StageScene({ ready, plan, clock, live, reveal, onCompiled, onFirstFrame
   return (
     <>
       {/* same margins as the lab: below the intro text (146 / 108 px; L4 pins 112 / 150 on desktop), above the caption */}
-      <Crew rig={ready.kit.rig} clock={clock} layout={CREW_LAYOUT} seed={CREW_SEED} kit={ready.kit} tracks={tracks} roam planSeed={plan ? plan.seed : 1}
+      <Crew rig={ready.kit.rig} clock={clock} layout={CREW_LAYOUT} seed={CREW_SEED} kit={ready.kit} tracks={tracks} roam={ROAM} planSeed={plan ? plan.seed : 1}
+        choreo={CHOREO_MODE} portraitCount={CREW_SIZE_PHONE}
         reveal={reveal} top={narrow ? 146 : 108} bottom={118} />
       <Warmup onCompiled={onCompiled} onFirstFrame={onFirstFrame} live={live} />
       <WebGLRecovery onUnrecoverable={onContextGone} />

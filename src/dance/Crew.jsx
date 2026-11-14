@@ -1,5 +1,5 @@
-// 9-dancer crew on the music stage: the home page's DanceStage.jsx (L4, seed 7) and the dev lab (/dance-lab?crew=L1..L4,
-// key L cycles). Procedural toon bodies (proceduralBody.js) dressed by looks.js, each driven by the shared retargeter
+// The dance crew on the music stage (9 or 25 dancers, `n`; a portrait screen can show fewer, `portraitCount`): the home
+// page's DanceStage.jsx (L4, seed 7) and the dev lab (/dance-lab?crew=L1..L4, key L cycles). Procedural toon bodies (proceduralBody.js) dressed by looks.js, each driven by the shared retargeter
 // from a time-shifted / mirrored copy of the exported trajectories (motion.js), placed by layouts.js. With `roam` on the
 // dancers also walk to other parts of the floor over the song (roam.js); their outer group stays on the slot (so the
 // camera fit and the shadows are unchanged) and the trip is carried in the rig's root.
@@ -7,11 +7,14 @@
 // in as `kit`; otherwise Crew builds them itself on mount (the lab). GPU buffers / programs are released on unmount
 // either way, while the CPU-side bodies in a kit stay cached for the next mount.
 // Draw calls: one skinned mesh per dancer (headphones merged into it, skinned to the head bone) + ONE instanced
-// mesh for all 27 contact-shadow blobs = 10.
-// `lineup` ('front' | 'back'): the 9 looks in a row in their bind pose (arms 40 deg out), for judging outfits / hair.
+// mesh for all the contact-shadow blobs (3 per dancer) = n + 1.
+// `choreo`: 'crew' (the live choreography: section offsets + mirror pairs + unison, motion.js) | 'chaos' (the seeded
+// per-visit scheduler, schedule.js).
+// `lineup` ('front' | 'back'): the looks in a row (two rows past 13) in their bind pose (arms 40 deg out), for judging outfits / hair.
 // `reveal` (simReveal.js store): the sim reveal wipe. The same crew is also drawn as MuJoCo capsule bodies (simBody.js,
-// all 9 in one skinned mesh posed from the same FK as the toon bodies) on the sim's floor + sky (one full-screen quad);
-// a clipping plane through the divider splits the screen between the two sets. 10 + 2 = 12 draw calls.
+// the whole crew in one skinned mesh posed from the same FK as the toon bodies) on the sim's floor + sky (one full-screen quad);
+// a clipping plane through the divider splits the screen between the two sets. (n + 1) + 2 draw calls; parked (a 6 px
+// sliver) the capsule crew isn't drawn: n + 2. Past 9 dancers only the TAGS_MAX nearest the camera get a move tag.
 import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
@@ -27,10 +30,11 @@ import { loadCrewMeta, loadTravelData } from './data.js';
 import { generateCrew, PALETTE } from './looks.js';
 import { CrewMotion, TravelLib } from './motion.js';
 import { cachedRoamPlan } from './roam.js';
-import { LAYOUTS } from './layouts.js';
+import { LAYOUTS, layoutView } from './layouts.js';
 import { SIM_SCALE, buildSimCrew, simRootMatrix } from './simBody.js';
-import { floorEdgeZ, makePlanes, makeSimBackdrop, revealFraction, shortMove, updateClipPlanes } from './simReveal.js';
+import { PARK_PX, floorEdgeZ, makePlanes, makeSimBackdrop, revealFraction, shortMove, updateClipPlanes } from './simReveal.js';
 
+const TAGS_MAX = 6; // sim reveal: move tags on at most this many dancers once the crew is bigger than 9
 const TEMPLATE_LABEL = { cropHoodie: 'crop hoodie', teeDress: 'tee dress', allblack: 'all black', tee: 'tee + jeans' };
 
 // ---------- one dancer: procedural body (+ headphones merged in) on its own skeleton
@@ -72,8 +76,8 @@ export function crewMaterials() {
 
 // A crew whose bodies are built ahead of time, half a body per buildNextDancer() call (~5-15 ms each on an M1), so the
 // caller can spread the work over idle callbacks and reuse the result across mounts. Returns true once all are built.
-export function createCrewKit(rig, seed = 7) {
-  return { rig, seed, looks: generateCrew(seed), materials: crewMaterials(), dancers: [], body: null };
+export function createCrewKit(rig, seed = 7, n = 9) {
+  return { rig, seed, looks: generateCrew(seed, n), materials: crewMaterials(), dancers: [], body: null };
 }
 export function buildNextDancer(kit) {
   const i = kit.dancers.length;
@@ -187,11 +191,11 @@ function fitCameraAt(camera, w, h, boxes, { top, bottom, fov, elevation, side = 
 function CrewCamera({ slots, layout, top, bottom, portrait, lineup, debug }) {
   const { camera, size } = useThree();
   useLayoutEffect(() => {
-    const L = LAYOUTS[layout];
+    const L = layoutView(LAYOUTS[layout], slots.length);
     // a layout may pin its own desktop margins (L4 keeps the round-1 112 / 150 px gap so the crew sits where it did)
     const fr = (!lineup && !portrait && L.desktopFrame) || {};
     const t = fr.top ?? top, b = fr.bottom ?? bottom;
-    const opts = lineup ? { top: t, bottom: b, fov: 18, elevation: 4, arm: 0.58, wander: 0, side: 0.98 }
+    const opts = lineup ? { top: t, bottom: b, fov: 18, elevation: slots.some((sl) => sl[1] < 0) ? 24 : 4, arm: 0.58, wander: 0, side: 0.98 }
       : { top: t, bottom: b, fov: L.fov, elevation: L.elevation[portrait ? 1 : 0], arm: portrait ? (L.armPortrait ?? 0.6) : 0.75,
         wander: (portrait && L.wanderPortrait != null ? L.wanderPortrait : 0.3) * L.travel };
     const r = fitCamera(camera, size.width, size.height, slots.map(([x, z, , s]) => [x, z, s]), opts);
@@ -230,8 +234,8 @@ function useCrewRigs(rig, preset) {
 // ahead of the drop). `dancers`: the mounted crew (their sizes turn rig units into stage metres). `seed`: the visit's
 // seed (the same one the motion's schedule was planned with).
 export function roamPlanFor(motion, travel, layout, portrait, dancers, seed) {
-  const L = LAYOUTS[layout] || LAYOUTS.L1;
-  const slots = L.slots(portrait).slice(0, dancers.length);
+  const L = layoutView(LAYOUTS[layout] || LAYOUTS.L1, dancers.length);
+  const slots = L.slots(portrait, dancers.length).slice(0, dancers.length);
   const K = dancers.map((d, i) => slots[i][3] * d.look.height * d.rt.k);
   const el = L.elevation[portrait ? 1 : 0];
   return cachedRoamPlan(motion, travel, `${layout}|${portrait ? 'p' : 'l'}|${dancers.length}|${seed}`,
@@ -242,28 +246,35 @@ export function roamPlanFor(motion, travel, layout, portrait, dancers, seed) {
 // the page adds the visit's planned CrewMotion). Both optional.
 // `roam`: dancers walk to other parts of the stage over the song (roam.js). `planSeed`: the visit's seed, for the
 // fall-in, the move schedule (schedule.js) and the trips; when `tracks.motion` is given it must have been planned with it.
-export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7, lineup = null, kit = null, tracks = null, roam = true, planSeed = 1, reveal = null, debug = import.meta.env.DEV }) {
+// `n`: crew size when Crew builds its own bodies (the lab; a kit brings its own). `portraitCount`: dancers shown on a
+// portrait screen (the rest are built but not mounted). `choreo`: 'crew' | 'chaos' (see the top).
+export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7, n = 9, portraitCount = null, choreo = 'crew', lineup = null, kit = null, tracks = null, roam = false, planSeed = 1, reveal = null, debug = import.meta.env.DEV }) {
   const { size, gl } = useThree();
   const portrait = size.height > size.width;
   const loaded = useCrewRigs(rig, tracks);
   const own = useMemo(() => {
     if (kit) return null;
-    const looks = generateCrew(seed);
+    const looks = generateCrew(seed, n);
     const materials = crewMaterials();
     return { looks, materials, dancers: looks.map((l) => buildCrewDancer(rig, l, materials)) };
-  }, [kit, rig, seed]);
+  }, [kit, rig, seed, n]);
   const { looks, materials, dancers } = kit || own;
   const shadows = useMemo(() => makeShadows(dancers.length * 3), [dancers]);
   useEffect(() => () => releaseGpu(dancers, materials, shadows), [dancers, materials, shadows]);
-  const motion = useMemo(() => (loaded ? loaded.motion || new CrewMotion(loaded.rigs, loaded.meta, { seed: planSeed, n: dancers.length }) : null),
-    [loaded, planSeed, dancers.length]);
-  const L = LAYOUTS[layout] || LAYOUTS.L1;
-  // a layout may show fewer dancers on a phone (L.mobileCount); the rest are built but not mounted
-  const count = lineup ? dancers.length : Math.min(dancers.length, portrait && L.mobileCount ? L.mobileCount : dancers.length);
+  const motion = useMemo(() => (loaded ? loaded.motion || new CrewMotion(loaded.rigs, loaded.meta, { seed: planSeed, n: dancers.length, mode: choreo }) : null),
+    [loaded, planSeed, dancers.length, choreo]);
+  // a portrait screen may show fewer dancers (portraitCount, or the layout's mobileCount); the rest are built but not mounted
+  const pc = portraitCount || LAYOUTS[layout]?.mobileCount;
+  const count = lineup ? dancers.length : Math.min(dancers.length, portrait && pc ? pc : dancers.length);
+  const L = useMemo(() => layoutView(LAYOUTS[layout] || LAYOUTS.L1, count), [layout, count]);
   const slots = useMemo(() => {
-    if (!lineup) return L.slots(portrait).slice(0, count);
-    const gap = 1.22; // arm span at the bind pose is ~1.07 m
-    return dancers.map((_, i) => [(i - (dancers.length - 1) / 2) * gap, 0, lineup === 'back' ? 180 : 0, 1]);
+    if (!lineup) return L.slots(portrait, count).slice(0, count);
+    // one row (arm span at the bind pose is ~1.07 m); more than 13: two rows, the back one in the gaps
+    const gap = 1.22, per = dancers.length > 13 ? Math.ceil(dancers.length / 2) : dancers.length;
+    return dancers.map((_, i) => {
+      const row = Math.floor(i / per), k = i % per, inRow = row ? dancers.length - per : per;
+      return [(k - (inRow - 1) / 2) * gap, row ? -4.2 : 0, lineup === 'back' ? 180 : 0, 1]; // 13 + 12: the back row sits in the gaps
+    });
   }, [L, portrait, lineup, dancers, count]);
   const shown = useMemo(() => dancers.slice(0, count), [dancers, count]);
   // the trips for this layout / orientation (planned once, a few ms; the camera framing stays fit to the slots)
@@ -340,6 +351,8 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
       // check can compare the two bodies' poses
       sim: sim ? { bones: sim.bones, nb: sim.nb, tris: sim.tris } : null,
       rts: shown.map((d) => d.rt),
+      meshes: shown.map((d) => d.mesh), // occlusion checks (ID renders)
+      slots,
       simK,
       motion,
       travel: L.travel,
@@ -364,6 +377,14 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
     return () => { delete window.__crew; };
   }, [looks, layout, seed, portrait, loaded, motion, dancers, shown, count, lineup, rig, L, debug, plan, sim, simK]);
   const idleQ = useMemo(() => new Float64Array(28), []);
+  // sim reveal move tags: every dancer up to 9; a bigger crew would be a wall of text, so only the TAGS_MAX dancers
+  // nearest the camera get one (the front-most slots: largest z, the camera sits at +z)
+  const tagged = useMemo(() => {
+    const on = new Uint8Array(shown.length);
+    if (shown.length <= 9) on.fill(1);
+    else slots.map((sl, i) => [sl[1], i]).sort((a, b) => b[0] - a[0]).slice(0, TAGS_MAX).forEach(([, i]) => { on[i] = 1; });
+    return on;
+  }, [shown, slots]);
 
   const dummy = useMemo(() => new Object3D(), []);
   const fwd = useMemo(() => new Vector3(), []);
@@ -385,7 +406,9 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
       updateClipPlanes(state.camera, (2 * x) / w - 1, planes.sim, planes.toon);
       const toonOn = frac < 0.999, simOn2 = frac > 0.0005;
       for (const d of shown) d.mesh.visible = toonOn;
-      sim.mesh.visible = simOn2;
+      // parked, the sim side is a 6 px sliver at the right edge, outside the camera fit (94% of the width): only the
+      // checkerboard shows there, so the capsule crew (25 x 4k triangles) isn't drawn until the divider moves in
+      sim.mesh.visible = simOn2 && frac > Math.min(1, PARK_PX / w) + 1e-4;
       backdrop.visible = simOn2;
       const u = backdrop.material.uniforms;
       u.uInvProj.value = state.camera.projectionMatrixInverse;
@@ -421,6 +444,8 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
       return;
     }
     for (let j = shown.length * 3; j < op.count; j++) op.array[j] = 0;
+    // crew mode: shown before the drop (an off-beat release) -> everyone in unison on unit 0's move until the downbeat
+    if (motion) motion.setEarly(s.from != null && s.from < rig.drop);
     shown.forEach((d, i) => {
       // dancing from the drop, or earlier when the stage clock says so (`from`: an off-beat release, DanceStage.jsx)
       if (s.idle || !motion || (s.t < rig.drop && s.from == null)) {
@@ -475,6 +500,7 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
       const head = rig.index.head;
       const T = tagState;
       shown.forEach((d, i) => {
+        if (!tagged[i]) { const el = tags[i]; if (el && el.style.display !== 'none') el.style.display = 'none'; return; }
         tmpP.setFromMatrixPosition(sim.bones[i * sim.nb + head].matrixWorld);
         tmpP.y += 0.17 * d.outer.scale.y * simK[i]; // just over the head sphere
         tmpP.project(state.camera);
@@ -494,7 +520,7 @@ export default function Crew({ rig, clock, layout = 'L1', top, bottom, seed = 7,
         T.tw[i] = key.length * T.charW + 8; T.th[i] = (mir ? 2 : 1) * T.lineH;
       });
       // keep the tags from piling up: front dancers (lower on screen) keep theirs, the ones behind step up over them
-      const order = shown.map((_, i) => i).sort((p, q) => T.ay[q] - T.ay[p]);
+      const order = shown.map((_, i) => i).filter((i) => tagged[i]).sort((p, q) => T.ay[q] - T.ay[p]);
       order.forEach((i, n) => {
         let y = T.ay[i];
         for (let pass = 0; pass < 4; pass++) {

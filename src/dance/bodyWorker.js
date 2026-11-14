@@ -1,5 +1,5 @@
 // Builds the crew's bodies off the main thread: { id, outfit } in, { id, data } (typed arrays transferred) out; and the
-// sim crew (simBody.js, the 9 MuJoCo capsule bodies merged): { id: 'sim', bodies, count } in, { id: 'sim', data } out.
+// sim crew (simBody.js, every dancer's MuJoCo capsule body merged): { id: 'sim', bodies, count } in, { id: 'sim', data } out.
 import { buildCrewBodyData, transferables } from './crewBody.js';
 import { buildSimBodyData, simTransferables } from './simBody.js';
 

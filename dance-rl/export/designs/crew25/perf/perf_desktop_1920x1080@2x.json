@@ -1,0 +1,215 @@
+[
+ {
+  "profile": "desk2x",
+  "run": 0,
+  "uncapped": false,
+  "throttle": 1,
+  "stage": {
+   "frames": 300,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.8,
+   "p99": 16.8,
+   "max": 16.8,
+   "over20": 0,
+   "drawCalls": [
+    27
+   ],
+   "tris": [
+    195525
+   ]
+  },
+  "dropWindow": {
+   "frames": 263,
+   "fps": 59.8,
+   "p50": 16.7,
+   "p95": 16.8,
+   "p99": 16.8,
+   "max": 33.4,
+   "over20": 1,
+   "drawCalls": [
+    22,
+    20,
+    19,
+    16,
+    14,
+    13
+   ],
+   "tris": [
+    5866,
+    5722,
+    5720,
+    5346
+   ]
+  },
+  "holdWindow": {
+   "frames": 198,
+   "fps": 59.7,
+   "p50": 16.7,
+   "p95": 16.7,
+   "p99": 16.8,
+   "max": 33.3,
+   "over20": 1,
+   "drawCalls": [
+    22
+   ],
+   "tris": [
+    5866
+   ]
+  },
+  "holdMs": 3316,
+  "releaseToVisibleMs": 1368,
+  "bodiesBuiltAfterHoldMs": 511,
+  "kitReadyAfterHoldMs": 747,
+  "mountAfterReleaseMs": 802,
+  "firstFrameAfterReleaseMs": 928,
+  "longTasksHold": [],
+  "longTasksDrop": [],
+  "longTasksStage": [],
+  "heapBeforeHoldMB": 6.41,
+  "heapOnStageMB": 12.25,
+  "errors": []
+ },
+ {
+  "profile": "desk2x",
+  "run": 1,
+  "uncapped": false,
+  "throttle": 1,
+  "stage": {
+   "frames": 301,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.8,
+   "p99": 16.8,
+   "max": 16.8,
+   "over20": 0,
+   "drawCalls": [
+    27
+   ],
+   "tris": [
+    195525
+   ]
+  },
+  "dropWindow": {
+   "frames": 264,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.8,
+   "p99": 16.8,
+   "max": 16.8,
+   "over20": 0,
+   "drawCalls": [
+    22,
+    21,
+    20,
+    18,
+    16,
+    15
+   ],
+   "tris": [
+    5866,
+    5794,
+    5722,
+    5718
+   ]
+  },
+  "holdWindow": {
+   "frames": 200,
+   "fps": 59.7,
+   "p50": 16.7,
+   "p95": 16.8,
+   "p99": 16.8,
+   "max": 33.3,
+   "over20": 1,
+   "drawCalls": [
+    22
+   ],
+   "tris": [
+    5866
+   ]
+  },
+  "holdMs": 3356,
+  "releaseToVisibleMs": 1306,
+  "bodiesBuiltAfterHoldMs": 512,
+  "kitReadyAfterHoldMs": 736,
+  "mountAfterReleaseMs": 802,
+  "firstFrameAfterReleaseMs": 929,
+  "longTasksHold": [],
+  "longTasksDrop": [],
+  "longTasksStage": [],
+  "heapBeforeHoldMB": 6.36,
+  "heapOnStageMB": 12.17,
+  "errors": []
+ },
+ {
+  "profile": "desk2x",
+  "run": 2,
+  "uncapped": false,
+  "throttle": 1,
+  "stage": {
+   "frames": 300,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.8,
+   "p99": 16.8,
+   "max": 16.8,
+   "over20": 0,
+   "drawCalls": [
+    27
+   ],
+   "tris": [
+    195525
+   ]
+  },
+  "dropWindow": {
+   "frames": 263,
+   "fps": 59.8,
+   "p50": 16.7,
+   "p95": 16.7,
+   "p99": 16.8,
+   "max": 33.3,
+   "over20": 1,
+   "drawCalls": [
+    22,
+    21,
+    20,
+    18,
+    16,
+    14
+   ],
+   "tris": [
+    5866,
+    5794,
+    5722,
+    5718
+   ]
+  },
+  "holdWindow": {
+   "frames": 200,
+   "fps": 59.7,
+   "p50": 16.7,
+   "p95": 16.7,
+   "p99": 16.8,
+   "max": 33.3,
+   "over20": 1,
+   "drawCalls": [
+    22
+   ],
+   "tris": [
+    5866
+   ]
+  },
+  "holdMs": 3357,
+  "releaseToVisibleMs": 1309,
+  "bodiesBuiltAfterHoldMs": 486,
+  "kitReadyAfterHoldMs": 720,
+  "mountAfterReleaseMs": 801,
+  "firstFrameAfterReleaseMs": 930,
+  "longTasksHold": [],
+  "longTasksDrop": [],
+  "longTasksStage": [],
+  "heapBeforeHoldMB": 6.4,
+  "heapOnStageMB": 12.18,
+  "errors": []
+ }
+]

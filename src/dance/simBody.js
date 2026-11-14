@@ -1,6 +1,6 @@
 // The crew as the simulator sees them: every dancer's MuJoCo humanoid (rig.js: 16 bodies, 20 capsule / sphere geoms
-// with the MJX XML's sizes), all 9 merged into ONE skinned mesh. Each vertex is rigidly bound to one bone = one body of
-// one dancer (9 x 16 bones), and Crew writes those bones' world matrices straight from the rig's FK each frame, through
+// with the MJX XML's sizes), the whole crew merged into ONE skinned mesh. Each vertex is rigidly bound to one bone = one body of
+// one dancer (n x 16 bones: 400 for 25, ~65k vertices, 32-bit index), and Crew writes those bones' world matrices straight from the rig's FK each frame, through
 // the same slot transform as the toon dancer, so both bodies are posed by the very same numbers: one draw call for the
 // whole sim crew. Pure three.js (no React, no DOM): the home page builds the geometry in the body worker.
 import {

@@ -1,0 +1,144 @@
+[
+ {
+  "profile": "phone",
+  "run": 0,
+  "uncapped": false,
+  "throttle": 1,
+  "stage": {
+   "frames": 300,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.7,
+   "p99": 16.8,
+   "max": 16.8,
+   "over20": 0,
+   "drawCalls": [
+    27
+   ],
+   "tris": [
+    195525
+   ]
+  },
+  "dropWindow": {
+   "frames": 264,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.7,
+   "p99": 16.8,
+   "max": 16.8,
+   "over20": 0,
+   "drawCalls": [
+    22,
+    21,
+    20,
+    19,
+    18,
+    16
+   ],
+   "tris": [
+    5866,
+    5794,
+    5722,
+    5720
+   ]
+  },
+  "holdWindow": {
+   "frames": 199,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.8,
+   "p99": 16.8,
+   "max": 16.8,
+   "over20": 0,
+   "drawCalls": [
+    22
+   ],
+   "tris": [
+    5866
+   ]
+  },
+  "holdMs": 3320,
+  "releaseToVisibleMs": 1319,
+  "bodiesBuiltAfterHoldMs": 401,
+  "kitReadyAfterHoldMs": 678,
+  "mountAfterReleaseMs": 802,
+  "firstFrameAfterReleaseMs": 907,
+  "longTasksHold": [],
+  "longTasksDrop": [],
+  "longTasksStage": [],
+  "heapBeforeHoldMB": 6.44,
+  "heapOnStageMB": 12.3,
+  "errors": []
+ },
+ {
+  "profile": "phone",
+  "run": 1,
+  "uncapped": false,
+  "throttle": 1,
+  "stage": {
+   "frames": 300,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.8,
+   "p99": 16.8,
+   "max": 16.8,
+   "over20": 0,
+   "drawCalls": [
+    27
+   ],
+   "tris": [
+    195525
+   ]
+  },
+  "dropWindow": {
+   "frames": 264,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.8,
+   "p99": 16.8,
+   "max": 16.8,
+   "over20": 0,
+   "drawCalls": [
+    22,
+    21,
+    20,
+    19,
+    18,
+    16
+   ],
+   "tris": [
+    5866,
+    5794,
+    5722,
+    5720
+   ]
+  },
+  "holdWindow": {
+   "frames": 198,
+   "fps": 60,
+   "p50": 16.7,
+   "p95": 16.7,
+   "p99": 16.8,
+   "max": 16.8,
+   "over20": 0,
+   "drawCalls": [
+    22
+   ],
+   "tris": [
+    5866
+   ]
+  },
+  "holdMs": 3306,
+  "releaseToVisibleMs": 1311,
+  "bodiesBuiltAfterHoldMs": 408,
+  "kitReadyAfterHoldMs": 699,
+  "mountAfterReleaseMs": 806,
+  "firstFrameAfterReleaseMs": 944,
+  "longTasksHold": [],
+  "longTasksDrop": [],
+  "longTasksStage": [],
+  "heapBeforeHoldMB": 6.44,
+  "heapOnStageMB": 12.38,
+  "errors": []
+ }
+]

@@ -175,3 +175,42 @@ export function planSchedule({ header, sections, n, seed = 1, unison = UNISON_UN
   };
   return { M, R, W, start, info };
 }
+
+// ---------- 'crew' mode: the live site's choreography (a3f13d5), generalised to any crew size
+// Every dancer plays the finale shifted by a whole number of 8-counts INSIDE the current section (so always on the beat
+// and in the section's energy tier) and / or mirrored. Pairs (1, 2), (3, 4), ... share an offset, the even one mirrored
+// (the layouts put the two either side of the centre); the offsets cycle CREW_OFFSETS: pairs 1-4 are the live 9-dancer
+// recipes exactly (2: B while the lead does A in 6-unit sections, 1: one 8-count ahead, 3: three ahead, 4: two ahead),
+// pairs 5-8 and 9-12 repeat them. On the sync units (crew.json: the drop's first 8-count and the first 8-count of every
+// section, which hold the 1-bar breakdowns), and before / after the song, everyone snaps to the lead: the finale's own
+// unit, not mirrored. Same every visit (no seed).
+export const CREW_OFFSETS = [2, 1, 3, 4];
+export function crewRecipes(n) {
+  const out = [{ off: 0, mirror: false }]; // the lead
+  for (let i = 1; i < n; i++) out.push({ off: CREW_OFFSETS[(Math.ceil(i / 2) - 1) % CREW_OFFSETS.length], mirror: i % 2 === 0 });
+  return out;
+}
+
+// The same { M, R, W, start, info } tables planSchedule returns, filled with the crew recipes, so CrewMotion samples /
+// crossfades both modes with the same code (and, at n = 9, exactly as a3f13d5's CrewMotion.state() did).
+export function planCrewSchedule({ header, sections, syncUnits, n, recipes = crewRecipes(n) }) {
+  const nu = header.units.length, W = nu + 2;
+  const M = new Int16Array(n * W), R = new Uint8Array(n * W);
+  const sync = new Set(syncUnits);
+  const secOf = new Array(nu);
+  for (const [a, b] of sections || [[0, nu]]) for (let u = a; u < b && u < nu; u++) secOf[u] = [a, b - a];
+  for (let i = 0; i < n; i++) {
+    const r = recipes[i] || recipes[0];
+    for (let u = -1; u <= nu; u++) {
+      let m = u, mir = 0;
+      if (!(u < 0 || u >= nu || sync.has(u) || (r.off === 0 && !r.mirror))) {
+        const [s, L] = secOf[u];
+        m = s + (((u - s + r.off) % L) + L) % L; mir = r.mirror ? 1 : 0;
+      }
+      M[i * W + u + 1] = m; R[i * W + u + 1] = mir;
+    }
+  }
+  const start = new Float64Array(n).fill(header.drop);
+  const info = { mode: 'crew', recipes: recipes.slice(0, n).map((r) => `${r.off}${r.mirror ? 'M' : ''}`), sync: [...sync] };
+  return { M, R, W, start, info };
+}

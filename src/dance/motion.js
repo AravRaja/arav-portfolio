@@ -8,9 +8,12 @@
 // the window is set by stageTiming.js so the whole fall-in is over before the page's crew can be seen).
 // On top of that, a roaming plan (roam.js, set with setRoam) moves / turns each dancer's copy to its current spot on
 // the floor and swaps in a travelling 8-count from travel.json (TravelLib) for its trips.
+// That is the 'chaos' mode. The 'crew' mode (the page's default, schedule.js planCrewSchedule) is the live site's
+// choreography instead: section offsets + mirror pairs, everyone on the lead's unit on the sync units, no fall-in, the
+// same every visit. Both fill the same tables, so sampling / crossfading is one code path.
 // Per frame nothing is allocated: the schedule is two typed arrays and every scratch buffer is preallocated.
 import { Quaternion } from 'three';
-import { FALL_IN_BLEND, UNISON_UNITS, planSchedule } from './schedule.js';
+import { FALL_IN_BLEND, UNISON_UNITS, planCrewSchedule, planSchedule } from './schedule.js';
 import { fallInWindow as pageFallInWindow } from './stageTiming.js';
 
 const BLEND = 0.2;
@@ -29,8 +32,12 @@ export class CrewMotion {
   // rigs: Rig per track (rigs[0] = finale, also the poser; the schedule only uses the finale); meta: crew.json;
   // seed: the stage visit's seed (schedule + fall-in); n: dancers; unison: the payoff units; fallInWindow: the longest
   // fall-in delay after the drop, s (default: the page's, stageTiming.js; the lab uses the same so a seed matches).
-  constructor(rigs, meta, { seed = 1, n = 9, unison = UNISON_UNITS, fallInWindow = pageFallInWindow() } = {}) {
+  // mode: 'chaos' (the seeded scheduler above) | 'crew' (the live choreography; seed / unison / fallInWindow unused, the
+  // payoffs are crew.json's sync units).
+  constructor(rigs, meta, { seed = 1, n = 9, unison = UNISON_UNITS, fallInWindow = pageFallInWindow(), mode = 'chaos' } = {}) {
     this.rigs = rigs;
+    this.mode = mode === 'crew' ? 'crew' : 'chaos';
+    if (this.mode === 'crew') unison = meta.sync_units || [];
     const h = rigs[0].header;
     this.anchor = h.grid_anchor;
     this.eight = h.eight;
@@ -45,7 +52,11 @@ export class CrewMotion {
     // past its own 8-count, so the 8-counts either side of a payoff are kept clear too
     this.noTrip = new Set([0]);
     for (const u of this.unison) for (let d = -1; d <= 1; d++) this.noTrip.add(u + d);
-    this.sched = planSchedule({ header: h, sections: meta.sections, n, seed, unison: [...this.unison], fallInWindow });
+    this.sched = this.mode === 'crew'
+      ? planCrewSchedule({ header: h, sections: meta.sections, syncUnits: [...this.unison], n })
+      : planSchedule({ header: h, sections: meta.sections, n, seed, unison: [...this.unison], fallInWindow });
+    // crew mode, crew shown before the drop (an off-beat release, see setEarly): what everyone plays in unit -1
+    this.pre = null;
     const { M, R, W, start } = this.sched;
     this.M = M; this.R = R; this.W = W;
     // fall-in crossfade per dancer: [fa, fb]. It starts at the drop for everyone, so from the drop on nobody stands
@@ -65,11 +76,23 @@ export class CrewMotion {
   // source unit of the finale that dancer i plays in song unit u (rows cover u = -1 .. nu; beyond, it carries on)
   src(i, u) {
     const c = u < -1 ? -1 : u > this.nu ? this.nu : u;
+    if (c === -1 && this.pre) return this.pre[0] + (u - c);
     return this.M[i * this.W + c + 1] + (u - c);
   }
   mir(i, u) {
     const c = u < -1 ? -1 : u > this.nu ? this.nu : u;
+    if (c === -1 && this.pre) return this.pre[1];
     return this.R[i * this.W + c + 1];
+  }
+
+  // Crew mode only. Unit -1 (up to the first downbeat after the drop) is the finale's own standing pickup, which the
+  // live site never showed (its crew appears ~0.8 s after the drop). When the crew shows BEFORE the drop (an off-beat
+  // release: DanceStage starts the dance at its first frame), everyone plays unit 1 mirrored there instead (units 0 / 1
+  // are one move and its mirror, so that is unit 0's move, an 8-count early), in unison, crossfaded into unit 0 at the
+  // first downbeat like any switch; the drop lands with the whole crew on one move, as on the live site.
+  setEarly(on) {
+    const want = this.mode === 'crew' && on;
+    if (want !== !!this.pre) this.pre = want ? [1, 1] : null;
   }
   // [track, mapped unit, mirror] (debug / panel)
   state(i, u) { return [0, this.src(i, u), !!this.mir(i, u)]; }
@@ -79,6 +102,7 @@ export class CrewMotion {
   // (an off-beat release), so the same staggered fall-in is already over when the crew first shows.
   startOf(i) { return this.sched.start[i]; }
   fallIn(i, t, from = this.drop) {
+    if (this.mode === 'crew') return 1; // no fall-in: dancing from the first frame drawn (the live site from the drop)
     const a = this.fa[i] + (from - this.drop), b = this.fb[i] + (from - this.drop);
     return t <= a ? 0 : t >= b ? 1 : smooth((t - a) / (b - a));
   }
